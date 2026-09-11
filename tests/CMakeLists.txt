@@ -105,3 +105,7 @@ add_library(actuator_mapping_lib STATIC ${CMAKE_SOURCE_DIR}/guidance/actuator_ma
 add_executable(test_actuator_mapping test_actuator_mapping.c)
 target_link_libraries(test_actuator_mapping actuator_mapping_lib)
 add_test(NAME test_actuator_mapping COMMAND test_actuator_mapping)
+
+add_executable(test_control_chain_metrics test_control_chain_metrics.c)
+target_link_libraries(test_control_chain_metrics hal_host_lib estimator_lib v_safe_lib pd_controller_lib actuator_mapping_lib metrics_lib m)
+add_test(NAME test_control_chain_metrics COMMAND test_control_chain_metrics)
