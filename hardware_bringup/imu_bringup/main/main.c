@@ -263,11 +263,11 @@ static void run_axis_mapping_test(void) {
 
 // ---- Test 3: achievable loop rate --------------------------------------------
 
-#define LOOP_RATE_TARGET_HZ    200
+#define LOOP_RATE_TARGET_HZ    1000
 #define LOOP_RATE_PERIOD_US    (1000000 / LOOP_RATE_TARGET_HZ)
 
 static void run_loop_rate_test(void) {
-  imu_device_t *d = &s_devices[0];
+  imu_device_t *d = &s_devices[1];
   const int N = 1000;
   printf("=== Test 3: loop rate at a paced %dHz target (%s at 0x%02X, 1000 reads) ===\n",
          LOOP_RATE_TARGET_HZ, chip_name(d->chip), d->addr);

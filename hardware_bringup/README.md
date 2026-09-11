@@ -168,6 +168,23 @@ confirmed achievable with 2x+ demonstrated margin and no errors** — this is
 the number that matters for `docs/design.md` §5.6. The original tight-loop
 "true ceiling" figure remains undetermined and isn't needed.
 
+Third pass, pushed further to a 1000Hz target (10x the real requirement,
+ICM20948 at 0x69) to map out where margin starts to compress, across three
+runs:
+```
+Achieved rate: 994.7 Hz (target 1000Hz)  Jitter: 139.1 us   I2C errors: 1/1000
+Achieved rate: 990.0 Hz (target 1000Hz)  Jitter: 205.9 us   I2C errors: 2/1000
+Achieved rate: 990.0 Hz (target 1000Hz)  Jitter: 205.8 us   I2C errors: 2/1000
+```
+At 10x the actual requirement, the first cracks appear (jitter ~500-700x
+higher than the clean 200Hz run, occasional `I2C software timeout`), but
+per-read reliability is still ~99.8-99.9%. This is purpose-of-margin data,
+not a requirement in itself: it shows there's a large, well-bounded buffer
+between "the real 100Hz cadence" (clean, zero errors) and "where problems
+start to appear" (~1000Hz), rather than the real cadence sitting right at
+the edge of what's achievable. Not investigated further — 100Hz with this
+much headroom isn't a risk worth chasing down to its exact breaking point.
+
 ## Test 4: ToF rate + no-new-data signaling (blocked on ToF shipment)
 
 **Goal:** confirm the VL53L1X can be configured for ~20Hz
