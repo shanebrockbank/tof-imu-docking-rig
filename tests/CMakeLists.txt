@@ -81,3 +81,7 @@ target_link_libraries(estimator_lib raw_speed_lib orientation_1d_lib gravity_com
 add_executable(test_estimator test_estimator.c)
 target_link_libraries(test_estimator estimator_lib m)
 add_test(NAME test_estimator COMMAND test_estimator)
+
+add_executable(test_estimation_chain_metrics test_estimation_chain_metrics.c)
+target_link_libraries(test_estimation_chain_metrics hal_host_lib estimator_lib metrics_lib m)
+add_test(NAME test_estimation_chain_metrics COMMAND test_estimation_chain_metrics)
