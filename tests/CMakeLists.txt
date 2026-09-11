@@ -115,3 +115,5 @@ add_library(csv_logger_lib STATIC ${CMAKE_SOURCE_DIR}/logging/csv_logger.c)
 add_executable(test_csv_logger test_csv_logger.c)
 target_link_libraries(test_csv_logger csv_logger_lib)
 add_test(NAME test_csv_logger COMMAND test_csv_logger)
+
+add_test(NAME test_hal_boundary COMMAND ${CMAKE_SOURCE_DIR}/tests/test_hal_boundary.sh)
