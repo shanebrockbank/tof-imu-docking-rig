@@ -39,3 +39,10 @@ target_link_libraries(hal_host_lib sim_cart_lib sim_range_sensor_lib sim_imu_lib
 add_executable(test_hal_host test_hal_host.c)
 target_link_libraries(test_hal_host hal_host_lib m)
 add_test(NAME test_hal_host COMMAND test_hal_host)
+
+add_library(gravity_compensation_lib STATIC ${CMAKE_SOURCE_DIR}/estimation/gravity_compensation.c)
+target_link_libraries(gravity_compensation_lib m)
+
+add_executable(test_gravity_compensation test_gravity_compensation.c)
+target_link_libraries(test_gravity_compensation gravity_compensation_lib sim_imu_lib m)
+add_test(NAME test_gravity_compensation COMMAND test_gravity_compensation)
