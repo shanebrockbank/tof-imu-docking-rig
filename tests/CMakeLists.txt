@@ -74,3 +74,10 @@ target_link_libraries(complementary_filter_lib common_lib)
 add_executable(test_complementary_filter test_complementary_filter.c)
 target_link_libraries(test_complementary_filter complementary_filter_lib)
 add_test(NAME test_complementary_filter COMMAND test_complementary_filter)
+
+add_library(estimator_lib STATIC ${CMAKE_SOURCE_DIR}/estimation/estimator.c)
+target_link_libraries(estimator_lib raw_speed_lib orientation_1d_lib gravity_compensation_lib complementary_filter_lib common_lib m)
+
+add_executable(test_estimator test_estimator.c)
+target_link_libraries(test_estimator estimator_lib m)
+add_test(NAME test_estimator COMMAND test_estimator)
