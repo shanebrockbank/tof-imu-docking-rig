@@ -25,3 +25,10 @@ target_link_libraries(sim_range_sensor_lib sim_noise_lib m)
 add_executable(test_sim_range_sensor test_sim_range_sensor.c)
 target_link_libraries(test_sim_range_sensor sim_range_sensor_lib m)
 add_test(NAME test_sim_range_sensor COMMAND test_sim_range_sensor)
+
+add_library(sim_imu_lib STATIC ${CMAKE_SOURCE_DIR}/sim/sim_imu.c)
+target_link_libraries(sim_imu_lib sim_noise_lib m)
+
+add_executable(test_sim_imu test_sim_imu.c)
+target_link_libraries(test_sim_imu sim_imu_lib m)
+add_test(NAME test_sim_imu COMMAND test_sim_imu)
