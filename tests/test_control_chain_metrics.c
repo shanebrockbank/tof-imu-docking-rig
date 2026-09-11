@@ -42,6 +42,13 @@ TEST(test_rms_tracking_error_and_saturation_percentage) {
     metrics_init(&control_output_m);
     int saturated_ticks = 0;
 
+    /* Last known MEASURED range, as a real onboard controller would hold
+       it between ~20Hz ToF samples (see sim/sim_range_sensor.c's sample
+       period) — never ground truth. Seeded from the same initial_range_m
+       used to construct the simulated world (a legitimate startup
+       condition), then updated only on HAL_OK reads and held otherwise. */
+    double measured_range_m = 1.0; /* matches hal_host_world_init's initial_range_m below */
+
     for (int i = 0; i < N_TICKS; i++) {
         hal_host_world_tick(&w, TRUE_ACCEL_MPS2, 0.0, TICK_DT);
         hal_t h = hal_host_create(&w);
@@ -50,9 +57,10 @@ TEST(test_rms_tracking_error_and_saturation_percentage) {
         hal_status_t is = h.imu_read(h.ctx, &s);
         r.status = rs;
         s.status = is;
+        if (rs == HAL_OK) measured_range_m = r.range_m;
         estimator_output_t est = estimator_tick(&e, &r, &s);
 
-        double target = v_safe(w.cart.true_range_m);
+        double target = v_safe(measured_range_m);
         double speed_error = est.fused_speed_mps - target;
         pd_output_t ctrl = pd_controller_update(&pd, speed_error, TICK_DT);
         double servo_deg = actuator_map_to_servo_deg(ctrl.control_output_filtered);
@@ -80,6 +88,10 @@ TEST(test_derivative_jitter_reduced_by_filtering_on_noisy_run) {
     jitter_init(&j_unfiltered);
     jitter_init(&j_filtered);
 
+    /* Same held/measured-range discipline as test 1 above — never ground
+       truth, seeded from this world's initial_range_m. */
+    double measured_range_m = 1.0; /* matches hal_host_world_init's initial_range_m below */
+
     for (int i = 0; i < N_TICKS; i++) {
         hal_host_world_tick(&w, TRUE_ACCEL_MPS2, 0.0, TICK_DT);
         hal_t h = hal_host_create(&w);
@@ -88,8 +100,9 @@ TEST(test_derivative_jitter_reduced_by_filtering_on_noisy_run) {
         hal_status_t is = h.imu_read(h.ctx, &s);
         r.status = rs;
         s.status = is;
+        if (rs == HAL_OK) measured_range_m = r.range_m;
         estimator_output_t est = estimator_tick(&e, &r, &s);
-        double speed_error = est.fused_speed_mps - v_safe(w.cart.true_range_m);
+        double speed_error = est.fused_speed_mps - v_safe(measured_range_m);
         pd_output_t ctrl = pd_controller_update(&pd, speed_error, TICK_DT);
         jitter_add(&j_unfiltered, ctrl.control_output_unfiltered);
         jitter_add(&j_filtered, ctrl.control_output_filtered);
