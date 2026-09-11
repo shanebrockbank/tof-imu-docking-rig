@@ -46,3 +46,10 @@ target_link_libraries(gravity_compensation_lib m)
 add_executable(test_gravity_compensation test_gravity_compensation.c)
 target_link_libraries(test_gravity_compensation gravity_compensation_lib sim_imu_lib m)
 add_test(NAME test_gravity_compensation COMMAND test_gravity_compensation)
+
+add_library(orientation_1d_lib STATIC ${CMAKE_SOURCE_DIR}/estimation/orientation_1d.c)
+target_link_libraries(orientation_1d_lib common_lib)
+
+add_executable(test_orientation_1d test_orientation_1d.c)
+target_link_libraries(test_orientation_1d orientation_1d_lib)
+add_test(NAME test_orientation_1d COMMAND test_orientation_1d)
