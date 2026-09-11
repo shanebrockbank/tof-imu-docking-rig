@@ -67,3 +67,10 @@ target_link_libraries(metrics_lib m)
 add_executable(test_metrics test_metrics.c)
 target_link_libraries(test_metrics metrics_lib m)
 add_test(NAME test_metrics COMMAND test_metrics)
+
+add_library(complementary_filter_lib STATIC ${CMAKE_SOURCE_DIR}/estimation/complementary_filter.c)
+target_link_libraries(complementary_filter_lib common_lib)
+
+add_executable(test_complementary_filter test_complementary_filter.c)
+target_link_libraries(test_complementary_filter complementary_filter_lib)
+add_test(NAME test_complementary_filter COMMAND test_complementary_filter)
