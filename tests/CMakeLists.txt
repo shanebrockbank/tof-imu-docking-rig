@@ -109,3 +109,9 @@ add_test(NAME test_actuator_mapping COMMAND test_actuator_mapping)
 add_executable(test_control_chain_metrics test_control_chain_metrics.c)
 target_link_libraries(test_control_chain_metrics hal_host_lib estimator_lib v_safe_lib pd_controller_lib actuator_mapping_lib metrics_lib m)
 add_test(NAME test_control_chain_metrics COMMAND test_control_chain_metrics)
+
+add_library(csv_logger_lib STATIC ${CMAKE_SOURCE_DIR}/logging/csv_logger.c)
+
+add_executable(test_csv_logger test_csv_logger.c)
+target_link_libraries(test_csv_logger csv_logger_lib)
+add_test(NAME test_csv_logger COMMAND test_csv_logger)
