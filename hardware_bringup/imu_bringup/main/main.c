@@ -72,8 +72,8 @@ static void reg_write8(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t v) {
   i2c_master_transmit(dev, buf, 2, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
 }
 
-static void reg_read_bytes(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t *buf, size_t len) {
-  i2c_master_transmit_receive(dev, &reg, 1, buf, len, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+static esp_err_t reg_read_bytes(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t *buf, size_t len) {
+  return i2c_master_transmit_receive(dev, &reg, 1, buf, len, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
 }
 
 static void icm_select_bank(i2c_master_dev_handle_t dev, uint8_t bank) {
@@ -151,13 +151,14 @@ static void init_device(imu_device_t *d) {
 
 // ---- Sample read (returns physical units) ----------------------------------
 
-static void read_sample(imu_device_t *d, float accel[3], float gyro[3]) {
+static esp_err_t read_sample(imu_device_t *d, float accel[3], float gyro[3]) {
   uint8_t buf[14];
   int16_t rax, ray, raz, rgx, rgy, rgz;
+  esp_err_t err;
 
   if (d->chip == CHIP_MPU6050) {
     // 0x3B..: AccelX,Y,Z, Temp, GyroX,Y,Z
-    reg_read_bytes(d->dev, 0x3B, buf, 14);
+    err = reg_read_bytes(d->dev, 0x3B, buf, 14);
     rax = (int16_t)((buf[0] << 8) | buf[1]);
     ray = (int16_t)((buf[2] << 8) | buf[3]);
     raz = (int16_t)((buf[4] << 8) | buf[5]);
@@ -166,7 +167,7 @@ static void read_sample(imu_device_t *d, float accel[3], float gyro[3]) {
     rgz = (int16_t)((buf[12] << 8) | buf[13]);
   } else {
     // 0x2D..: AccelX,Y,Z, GyroX,Y,Z, Temp
-    reg_read_bytes(d->dev, 0x2D, buf, 14);
+    err = reg_read_bytes(d->dev, 0x2D, buf, 14);
     rax = (int16_t)((buf[0] << 8) | buf[1]);
     ray = (int16_t)((buf[2] << 8) | buf[3]);
     raz = (int16_t)((buf[4] << 8) | buf[5]);
@@ -181,6 +182,7 @@ static void read_sample(imu_device_t *d, float accel[3], float gyro[3]) {
   gyro[0] = (rgx / GYRO_LSB_PER_DPS) * DEG2RAD;
   gyro[1] = (rgy / GYRO_LSB_PER_DPS) * DEG2RAD;
   gyro[2] = (rgz / GYRO_LSB_PER_DPS) * DEG2RAD;
+  return err;
 }
 
 // ---- UART console helpers ---------------------------------------------------
@@ -261,19 +263,30 @@ static void run_axis_mapping_test(void) {
 
 // ---- Test 3: achievable loop rate --------------------------------------------
 
+#define LOOP_RATE_TARGET_HZ    200
+#define LOOP_RATE_PERIOD_US    (1000000 / LOOP_RATE_TARGET_HZ)
+
 static void run_loop_rate_test(void) {
   imu_device_t *d = &s_devices[0];
   const int N = 1000;
-  printf("=== Test 3: achievable loop rate (%s at 0x%02X, 1000 reads, tight loop) ===\n",
-         chip_name(d->chip), d->addr);
+  printf("=== Test 3: loop rate at a paced %dHz target (%s at 0x%02X, 1000 reads) ===\n",
+         LOOP_RATE_TARGET_HZ, chip_name(d->chip), d->addr);
 
   double sumDt = 0, sumDtSq = 0;
+  int error_count = 0;
   int64_t prev = 0;
+  int64_t iter_start = esp_timer_get_time();
   for (int i = 0; i < N; i++) {
     float accel[3], gyro[3];
-    read_sample(d, accel, gyro); // no printing in the loop - printing would skew timing
-    esp_rom_delay_us(100); // diagnostic: does a tiny real gap clear the I2C software timeouts?
+    if (read_sample(d, accel, gyro) != ESP_OK) error_count++; // no printing in the loop - would skew timing
+
+    // Pace to LOOP_RATE_PERIOD_US regardless of how long the read itself took.
+    int64_t target = iter_start + LOOP_RATE_PERIOD_US;
     int64_t now = esp_timer_get_time();
+    if (now < target) esp_rom_delay_us((uint32_t)(target - now));
+    now = esp_timer_get_time();
+    iter_start = now;
+
     if (i > 0) {
       double dt = (now - prev) / 1e6;
       sumDt += dt;
@@ -287,9 +300,10 @@ static void run_loop_rate_test(void) {
   double varDt = sumDtSq / (N - 1) - meanDt * meanDt;
   double jitterUs = sqrt(varDt) * 1e6;
 
-  printf("Achieved rate: %.1f Hz\n", achievedHz);
+  printf("Achieved rate: %.1f Hz (target %dHz)\n", achievedHz, LOOP_RATE_TARGET_HZ);
   printf("Mean interval: %.3f ms\n", meanDt * 1000.0);
   printf("Jitter (stddev of interval): %.1f us\n", jitterUs);
+  printf("I2C errors: %d / %d reads\n", error_count, N);
 }
 
 // ---- Menu / main ----------------------------------------------------------

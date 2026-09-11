@@ -45,7 +45,7 @@ idf.py -p /dev/ttyACM0 build flash monitor
 |---|------|--------|-----------------|
 | 1 | IMU at-rest noise/bias (MPU6050 vs ICM20948) | done | both chips measured, see below |
 | 2 | IMU axis/sign mapping | firmware ready, not yet run | |
-| 3 | IMU achievable loop rate | done (with caveat) | ~100Hz confirmed via Test 1's cadence; tight-loop ceiling unreliable, see below |
+| 3 | IMU achievable loop rate | done | 200Hz paced, 0 errors/1000 reads, 0.3us jitter — 2x margin over 100Hz confirmed |
 | 4 | ToF rate + no-new-data signaling | blocked on ToF shipment | |
 | 5 | ToF noise across range | blocked on ToF shipment | |
 | 6 | Combined I2C bus timing (ToF+IMU[+OLED]) | blocked on ToF shipment | |
@@ -131,34 +131,42 @@ convention in `docs/design.md` §3?).
 **Goal:** confirm the 100Hz main-loop assumption (`docs/design.md` §5.6)
 is achievable on this ESP32 over I2C, and how jittery it actually is.
 
-**Procedure:** read the IMU in a tight loop with no other work, timing
-each read with `micros()`. Over ~1000 iterations, compute achieved Hz and
-jitter (stddev of inter-read interval).
+**Procedure:** originally a zero-delay tight loop timing each read with
+`micros()`/`esp_timer_get_time()`. Revised after an initial attempt (below)
+to instead pace reads at a fixed target rate (busy-wait the remainder of
+each period, computed from `esp_timer_get_time()`) and explicitly count
+I2C errors, since the tight-loop version turned out not to be trustworthy.
+Over 1000 iterations, compute achieved Hz, jitter (stddev of inter-read
+interval), and error count.
 
 **Record here:** achieved Hz, jitter. If far from 100Hz, note it — this
 would be a real input to whether DEBT-3 (timing realism) matters sooner
 than "someday."
 
-**Result (measured 2026-09-10):** Test 1's own 1000-sample run (10ms delay
-between reads — i.e. the actual real 100Hz/10ms main-loop cadence) completed
-with **zero I2C errors**, both chips, every run. That's the number that
-matters for `docs/design.md` §5.6 and it's confirmed with margin.
+**Result (measured 2026-09-10):** first pass, a zero-delay tight loop, was
+**not reliable** and its number is discarded: it consistently threw `I2C
+software timeout` errors (ESP-IDF's `i2c.master` log tag) across every
+combination tried — 400kHz and 100kHz I2C clock, weak internal pull-ups and
+proper external 2kOhm pull-ups on SDA/SCL, zero delay and a 100us
+inter-read delay. None of those hardware/firmware changes cleared it,
+pointing to a driver-level limitation under sustained back-to-back
+synchronous `i2c_master_transmit_receive` calls in this ESP-IDF version
+(v5.5.3) rather than a wiring problem.
 
-Separately, this test's own zero-delay tight-loop figure is **not
-reliable** and shouldn't be used: it consistently threw `I2C software
-timeout` errors (ESP-IDF's `i2c.master` log tag) across every combination
-tried — 400kHz and 100kHz I2C clock, weak internal pull-ups and proper
-external 2kOhm pull-ups on SDA/SCL, zero delay and a 100us inter-read
-delay. None of those hardware/firmware changes cleared it, which points to
-a driver-level limitation under sustained back-to-back synchronous
-`i2c_master_transmit_receive` calls in this ESP-IDF version (v5.5.3) rather
-than a wiring problem — real firmware never operates this way regardless
-(it reads the IMU once per 10ms loop iteration, not back-to-back). Reported
-numbers under this adversarial pattern were still ~1000-1100Hz even with
-the errors present, i.e. 10x+ the actual 100Hz requirement, so this isn't a
-blocker — just not a trustworthy "true ceiling" measurement. Not
-investigated further given Test 1 already validates the number that
-matters.
+Second pass, paced to a fixed 200Hz target (2x the actual 100Hz
+requirement, 5ms period, MPU6050 at 0x68) instead of chasing the ceiling,
+came back clean:
+```
+Achieved rate: 200.0 Hz (target 200Hz)
+Mean interval: 5.001 ms
+Jitter (stddev of interval): 0.3 us
+I2C errors: 0 / 1000 reads
+```
+Zero errors, negligible jitter, exact target rate. Combined with Test 1's
+own zero-error 1000-sample run at the real 10ms/100Hz cadence, **100Hz is
+confirmed achievable with 2x+ demonstrated margin and no errors** — this is
+the number that matters for `docs/design.md` §5.6. The original tight-loop
+"true ceiling" figure remains undetermined and isn't needed.
 
 ## Test 4: ToF rate + no-new-data signaling (blocked on ToF shipment)
 
