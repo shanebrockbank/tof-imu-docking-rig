@@ -92,3 +92,10 @@ target_link_libraries(v_safe_lib m)
 add_executable(test_v_safe test_v_safe.c)
 target_link_libraries(test_v_safe v_safe_lib m)
 add_test(NAME test_v_safe COMMAND test_v_safe)
+
+add_library(pd_controller_lib STATIC ${CMAKE_SOURCE_DIR}/guidance/pd_controller.c)
+target_link_libraries(pd_controller_lib common_lib)
+
+add_executable(test_pd_controller test_pd_controller.c)
+target_link_libraries(test_pd_controller pd_controller_lib m)
+add_test(NAME test_pd_controller COMMAND test_pd_controller)
