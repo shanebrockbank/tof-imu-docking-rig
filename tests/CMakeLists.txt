@@ -5,3 +5,10 @@ add_library(common_lib STATIC
 add_executable(test_dt_validation test_dt_validation.c)
 target_link_libraries(test_dt_validation common_lib)
 add_test(NAME test_dt_validation COMMAND test_dt_validation)
+
+add_library(sim_noise_lib STATIC ${CMAKE_SOURCE_DIR}/sim/sim_noise.c)
+target_link_libraries(sim_noise_lib m)
+
+add_executable(test_sim_noise test_sim_noise.c)
+target_link_libraries(test_sim_noise sim_noise_lib m)
+add_test(NAME test_sim_noise COMMAND test_sim_noise)
