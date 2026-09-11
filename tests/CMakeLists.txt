@@ -60,3 +60,10 @@ target_link_libraries(raw_speed_lib common_lib)
 add_executable(test_raw_speed test_raw_speed.c)
 target_link_libraries(test_raw_speed raw_speed_lib)
 add_test(NAME test_raw_speed COMMAND test_raw_speed)
+
+add_library(metrics_lib STATIC ${CMAKE_SOURCE_DIR}/common/metrics.c)
+target_link_libraries(metrics_lib m)
+
+add_executable(test_metrics test_metrics.c)
+target_link_libraries(test_metrics metrics_lib m)
+add_test(NAME test_metrics COMMAND test_metrics)
