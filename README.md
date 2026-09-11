@@ -208,9 +208,10 @@ simulated backend today and the real ESP32 backend once `DEBT-1` lands.
 
 This is checked mechanically, not just by convention:
 `tests/test_hal_boundary.sh` greps every file in the repo *except*
-`hal_esp32.c` for ESP-IDF include patterns, and fails the build if any
-match. It runs as its own ctest entry (`test_hal_boundary`) alongside
-every C test suite.
+`hal_esp32.c` and the standalone `hardware_bringup/` tree (pre-V1
+firmware, see its own README) for ESP-IDF include patterns, and fails the
+build if any match. It runs as its own ctest entry (`test_hal_boundary`)
+alongside every C test suite.
 
 ## Why estimation and control are scored separately, never against each other
 

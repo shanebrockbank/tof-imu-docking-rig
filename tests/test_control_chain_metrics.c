@@ -5,7 +5,9 @@
 #include "guidance/pd_controller.h"
 #include "guidance/actuator_mapping.h"
 #include "common/metrics.h"
+#include "common/dt_validation.h"
 #include <math.h>
+#include <stdio.h>
 
 #define TICK_DT 0.01
 #define N_TICKS 500
@@ -47,11 +49,19 @@ TEST(test_rms_tracking_error_and_saturation_percentage) {
        period) — never ground truth. Seeded from the same initial_range_m
        used to construct the simulated world (a legitimate startup
        condition), then updated only on HAL_OK reads and held otherwise. */
-    double measured_range_m = 1.0; /* matches hal_host_world_init's initial_range_m below */
+    double measured_range_m = 1.0; /* matches hal_host_world_init's initial_range_m above */
+
+    /* hal_t is populated once at startup (docs/design.md §5), not
+       reconstructed every loop iteration. */
+    hal_t h = hal_host_create(&w);
+    /* Previous tick's timestamp, for computing the PD controller's dt from
+       real clock_now() readings rather than a hardcoded TICK_DT. */
+    timestamp_t prev_now = h.clock_now(h.ctx);
 
     for (int i = 0; i < N_TICKS; i++) {
         hal_host_world_tick(&w, TRUE_ACCEL_MPS2, 0.0, TICK_DT);
-        hal_t h = hal_host_create(&w);
+        timestamp_t now = h.clock_now(h.ctx);
+        double ctrl_dt = dt_between(prev_now, now);
         range_sample_t r; imu_sample_t s;
         hal_status_t rs = h.range_read(h.ctx, &r);
         hal_status_t is = h.imu_read(h.ctx, &s);
@@ -62,18 +72,26 @@ TEST(test_rms_tracking_error_and_saturation_percentage) {
 
         double target = v_safe(measured_range_m);
         double speed_error = est.fused_speed_mps - target;
-        pd_output_t ctrl = pd_controller_update(&pd, speed_error, TICK_DT);
+        pd_output_t ctrl = pd_controller_update(&pd, speed_error, ctrl_dt);
         double servo_deg = actuator_map_to_servo_deg(ctrl.control_output_filtered);
 
         metrics_add(&tracking_m, est.fused_speed_mps, target);
         metrics_add(&control_output_m, ctrl.control_output_filtered, 0.0);
         if (fabs(ctrl.control_output_filtered) >= 0.999) saturated_ticks++;
         CHECK(servo_deg >= 45.0 && servo_deg <= 135.0);
+        prev_now = now;
     }
 
     double saturation_pct = 100.0 * saturated_ticks / N_TICKS;
+    printf("tracking RMSE = %.4f m/s\n", metrics_rmse(&tracking_m));
+    printf("control-output variance = %.4f\n", metrics_variance(&control_output_m));
+    printf("saturation = %.2f%% of ticks\n", saturation_pct);
     CHECK(metrics_rmse(&tracking_m) < 0.5);
-    CHECK(saturation_pct >= 0.0 && saturation_pct <= 100.0);
+    /* Real threshold, not a by-construction tautology: the review-observed
+       value on this scenario is 0.00% (this gentle scenario never drives
+       the PD output to the +/-1 clamp). A generous-but-meaningful bound
+       that would still catch a controller/scenario regression. */
+    CHECK(saturation_pct < 5.0);
 }
 
 TEST(test_derivative_jitter_reduced_by_filtering_on_noisy_run) {
@@ -90,11 +108,17 @@ TEST(test_derivative_jitter_reduced_by_filtering_on_noisy_run) {
 
     /* Same held/measured-range discipline as test 1 above — never ground
        truth, seeded from this world's initial_range_m. */
-    double measured_range_m = 1.0; /* matches hal_host_world_init's initial_range_m below */
+    double measured_range_m = 1.0; /* matches hal_host_world_init's initial_range_m above */
+
+    /* hal_t is populated once at startup (docs/design.md §5), not
+       reconstructed every loop iteration. */
+    hal_t h = hal_host_create(&w);
+    timestamp_t prev_now = h.clock_now(h.ctx);
 
     for (int i = 0; i < N_TICKS; i++) {
         hal_host_world_tick(&w, TRUE_ACCEL_MPS2, 0.0, TICK_DT);
-        hal_t h = hal_host_create(&w);
+        timestamp_t now = h.clock_now(h.ctx);
+        double ctrl_dt = dt_between(prev_now, now);
         range_sample_t r; imu_sample_t s;
         hal_status_t rs = h.range_read(h.ctx, &r);
         hal_status_t is = h.imu_read(h.ctx, &s);
@@ -103,12 +127,15 @@ TEST(test_derivative_jitter_reduced_by_filtering_on_noisy_run) {
         if (rs == HAL_OK) measured_range_m = r.range_m;
         estimator_output_t est = estimator_tick(&e, &r, &s);
         double speed_error = est.fused_speed_mps - v_safe(measured_range_m);
-        pd_output_t ctrl = pd_controller_update(&pd, speed_error, TICK_DT);
+        pd_output_t ctrl = pd_controller_update(&pd, speed_error, ctrl_dt);
         jitter_add(&j_unfiltered, ctrl.control_output_unfiltered);
         jitter_add(&j_filtered, ctrl.control_output_filtered);
+        prev_now = now;
     }
     /* This is the demonstrable point: unfiltered D-term jitters more than
        filtered, on the same run (docs/design.md §7.2, §8). */
+    printf("D-term jitter unfiltered RMS = %.4f\n", jitter_rms(&j_unfiltered));
+    printf("D-term jitter filtered RMS = %.4f\n", jitter_rms(&j_filtered));
     CHECK(jitter_rms(&j_unfiltered) > jitter_rms(&j_filtered));
 }
 
@@ -124,8 +151,13 @@ TEST(test_step_response_time_to_speed_error_step) {
     }
     double final_output = output[N_TICKS - 1];
     double settle = find_settling_time(t_s, output, N_TICKS, final_output, 0.05);
+    printf("PD step response settle = %.2f s, final output = %.2f\n", settle, final_output);
     CHECK(settle >= 1.0); /* can't settle before the step happens */
-    CHECK(settle < t_s[N_TICKS - 1]);
+    /* Real margin, not a last-tick technicality (same pattern as the
+       task-15 fix in tests/test_estimation_chain_metrics.c): settle with
+       at least 1s of headroom before the run ends, not merely "before the
+       very last sample". */
+    CHECK(settle < t_s[N_TICKS - 1] - 1.0);
 }
 
 int main(void) {

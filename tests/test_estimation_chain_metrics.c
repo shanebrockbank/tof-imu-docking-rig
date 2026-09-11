@@ -40,6 +40,10 @@ TEST(test_fused_rmse_bias_variance_under_nominal_noise) {
 
     /* FUSED must track ground truth substantially better than RAW's raw
        differencing noise floor (the demonstrable point of fusion). */
+    printf("RAW RMSE = %.4f m/s\n", metrics_rmse(&raw_m));
+    printf("FUSED RMSE = %.4f m/s\n", metrics_rmse(&fused_m));
+    printf("FUSED bias = %.4f m/s\n", metrics_mean_bias(&fused_m));
+    printf("FUSED variance = %.6f\n", metrics_variance(&fused_m));
     CHECK(metrics_rmse(&fused_m) < metrics_rmse(&raw_m));
     CHECK(metrics_rmse(&fused_m) < 0.15);
     CHECK(fabs(metrics_mean_bias(&fused_m)) < 0.1);
@@ -70,6 +74,7 @@ TEST(test_dropout_recovery_fused_reconverges_after_tof_gap) {
     }
     double true_v_final = w.cart.true_velocity_mps;
     double settle = find_settling_time(t_s, fused, N_TICKS, true_v_final, 0.1);
+    printf("dropout-recovery settle = %.2f s\n", settle);
     CHECK(settle >= 0.0); /* it does reconverge within the run */
 }
 
@@ -110,6 +115,7 @@ TEST(test_response_lag_after_step_change_in_true_velocity) {
     }
     double true_v_final = w.cart.true_velocity_mps; /* the held plateau velocity */
     double settle = find_settling_time(t_s, fused, N_TICKS, true_v_final, 0.05);
+    printf("step-response settle = %.2f s\n", settle);
     CHECK(settle >= 0.0);
     /* Real margin, not a last-tick technicality: settle with at least 1s
        of held-plateau headroom before the run ends. */
@@ -138,6 +144,7 @@ TEST(test_imu_bias_drift_stays_bounded_by_tof_corrections) {
     }
     /* Bounded, not diverging without limit, thanks to periodic ToF
        correction — this is the point of fusion over pure IMU integration. */
+    printf("bias-drift FUSED RMSE = %.4f m/s\n", metrics_rmse(&fused_m));
     CHECK(metrics_rmse(&fused_m) < 0.5);
 }
 

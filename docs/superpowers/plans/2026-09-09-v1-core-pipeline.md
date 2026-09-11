@@ -59,7 +59,7 @@ from it and does not repeat every rationale — only concrete values/code).
   (returns `b.t_s - a.t_s`). All later tasks include `common/types.h` and
   `common/dt_validation.h`.
 
-- [ ] **Step 1: Write `common/types.h`**
+- [x] **Step 1: Write `common/types.h`**
 
 ```c
 #ifndef COMMON_TYPES_H
@@ -78,7 +78,7 @@ typedef enum {
 #endif /* COMMON_TYPES_H */
 ```
 
-- [ ] **Step 2: Write `common/dt_validation.h`**
+- [x] **Step 2: Write `common/dt_validation.h`**
 
 ```c
 #ifndef COMMON_DT_VALIDATION_H
@@ -97,7 +97,7 @@ double dt_between(timestamp_t earlier, timestamp_t later);
 #endif /* COMMON_DT_VALIDATION_H */
 ```
 
-- [ ] **Step 3: Write `common/dt_validation.c`**
+- [x] **Step 3: Write `common/dt_validation.c`**
 
 ```c
 #include "common/dt_validation.h"
@@ -111,7 +111,7 @@ double dt_between(timestamp_t earlier, timestamp_t later) {
 }
 ```
 
-- [ ] **Step 4: Write `tests/test_framework.h`**
+- [x] **Step 4: Write `tests/test_framework.h`**
 
 ```c
 #ifndef TESTS_TEST_FRAMEWORK_H
@@ -154,7 +154,7 @@ static int g_current_test_failed = 0;
 #endif /* TESTS_TEST_FRAMEWORK_H */
 ```
 
-- [ ] **Step 5: Write `tests/test_dt_validation.c`**
+- [x] **Step 5: Write `tests/test_dt_validation.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -191,7 +191,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 6: Write top-level `CMakeLists.txt`**
+- [x] **Step 6: Write top-level `CMakeLists.txt`**
 
 ```cmake
 cmake_minimum_required(VERSION 3.16)
@@ -206,7 +206,7 @@ enable_testing()
 add_subdirectory(tests)
 ```
 
-- [ ] **Step 7: Write `tests/CMakeLists.txt`**
+- [x] **Step 7: Write `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(common_lib STATIC
@@ -218,7 +218,7 @@ target_link_libraries(test_dt_validation common_lib)
 add_test(NAME test_dt_validation COMMAND test_dt_validation)
 ```
 
-- [ ] **Step 8: Write `.gitignore`**
+- [x] **Step 8: Write `.gitignore`**
 
 ```
 build/
@@ -226,7 +226,7 @@ build/
 *.csv
 ```
 
-- [ ] **Step 9: Configure, build, run**
+- [x] **Step 9: Configure, build, run**
 
 ```bash
 cmake -S . -B build
@@ -236,7 +236,7 @@ ctest --test-dir build --output-on-failure
 
 Expected: `4/4 tests passing`.
 
-- [ ] **Step 10: git init + first commit**
+- [x] **Step 10: git init + first commit**
 
 ```bash
 git init
@@ -257,7 +257,7 @@ git commit -m "scaffold: CMake, common types, dt validation, test framework"
   `imu_sample_t { double accel_mps2[3]; double gyro_rps[3]; timestamp_t ts; hal_status_t status; }`.
   Used by `hal/hal.h` (Task 3) and every `sim/` module (Task 5+).
 
-- [ ] **Step 1: Write `common/measurement.h`**
+- [x] **Step 1: Write `common/measurement.h`**
 
 ```c
 #ifndef COMMON_MEASUREMENT_H
@@ -281,7 +281,7 @@ typedef struct {
 #endif /* COMMON_MEASUREMENT_H */
 ```
 
-- [ ] **Step 2: No test needed (pure data struct, exercised by Task 3+ tests). Commit.**
+- [x] **Step 2: No test needed (pure data struct, exercised by Task 3+ tests). Commit.**
 
 ```bash
 git add common/measurement.h
@@ -303,7 +303,7 @@ git commit -m "add: shared range/IMU measurement sample types"
   depends on for I/O. `hal_host.c` (Task 6) and any future `hal_esp32.c`
   populate one of these.
 
-- [ ] **Step 1: Write `hal/hal.h`**
+- [x] **Step 1: Write `hal/hal.h`**
 
 ```c
 #ifndef HAL_HAL_H
@@ -333,7 +333,7 @@ typedef struct {
 #endif /* HAL_HAL_H */
 ```
 
-- [ ] **Step 2: Build to confirm it compiles standalone (no .c to test yet — header-only)**
+- [x] **Step 2: Build to confirm it compiles standalone (no .c to test yet — header-only)**
 
 ```bash
 cc -std=c99 -c -I. hal/hal.h -o /dev/null -x c 2>&1 | head -20
@@ -342,14 +342,14 @@ cc -std=c99 -c -I. hal/hal.h -o /dev/null -x c 2>&1 | head -20
 Expected: no errors (a header with only structs/typedefs compiles clean
 when included via `-x c`).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add hal/hal.h
 git commit -m "add: HAL interface contract (IRangeSensor/IImu/IActuator/IClock)"
 ```
 
-- [ ] **Step 4: STOP. Present `hal/hal.h` and docs/design.md §5 to the user for confirmation before proceeding to Task 4.** Do not write `sim/` or `hal_host.c` until confirmed.
+- [x] **Step 4: STOP. Present `hal/hal.h` and docs/design.md §5 to the user for confirmation before proceeding to Task 4.** Do not write `sim/` or `hal_host.c` until confirmed.
 
 ---
 
@@ -370,7 +370,7 @@ git commit -m "add: HAL interface contract (IRangeSensor/IImu/IActuator/IClock)"
   Box-Muller generator is used (not `rand()`/`<stdlib.h>`) so host tests are
   bit-for-bit reproducible across platforms/libc versions.
 
-- [ ] **Step 1: Write `sim/sim_noise.h`**
+- [x] **Step 1: Write `sim/sim_noise.h`**
 
 ```c
 #ifndef SIM_SIM_NOISE_H
@@ -388,7 +388,7 @@ double sim_noise_gaussian(sim_noise_t *n, double mean, double stddev);
 #endif /* SIM_SIM_NOISE_H */
 ```
 
-- [ ] **Step 2: Write `sim/sim_noise.c`**
+- [x] **Step 2: Write `sim/sim_noise.c`**
 
 ```c
 #include "sim/sim_noise.h"
@@ -420,7 +420,7 @@ double sim_noise_gaussian(sim_noise_t *n, double mean, double stddev) {
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_sim_noise.c`**
+- [x] **Step 3: Write `tests/test_sim_noise.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -462,7 +462,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(sim_noise_lib STATIC ${CMAKE_SOURCE_DIR}/sim/sim_noise.c)
@@ -473,13 +473,13 @@ target_link_libraries(test_sim_noise sim_noise_lib m)
 add_test(NAME test_sim_noise COMMAND test_sim_noise)
 ```
 
-- [ ] **Step 5: Build and run; expect `4/4` new + prior `4/4` = report both suites' totals ("test_dt_validation: 4/4", "test_sim_noise: 3/3")**
+- [x] **Step 5: Build and run; expect `4/4` new + prior `4/4` = report both suites' totals ("test_dt_validation: 4/4", "test_sim_noise: 3/3")**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim/sim_noise.h sim/sim_noise.c tests/test_sim_noise.c tests/CMakeLists.txt
@@ -504,7 +504,7 @@ git commit -m "add: deterministic sim noise generator (xorshift32 + Box-Muller)"
   tests read `true_range_m`/`true_velocity_mps` directly, bypassing the
   HAL, per docs/design.md §8.
 
-- [ ] **Step 1: Write `sim/sim_cart.h`**
+- [x] **Step 1: Write `sim/sim_cart.h`**
 
 ```c
 #ifndef SIM_SIM_CART_H
@@ -525,7 +525,7 @@ void sim_cart_step(sim_cart_t *c, double true_accel_mps2, double dt);
 #endif /* SIM_SIM_CART_H */
 ```
 
-- [ ] **Step 2: Write `sim/sim_cart.c`**
+- [x] **Step 2: Write `sim/sim_cart.c`**
 
 ```c
 #include "sim/sim_cart.h"
@@ -544,7 +544,7 @@ void sim_cart_step(sim_cart_t *c, double true_accel_mps2, double dt) {
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_sim_cart.c`**
+- [x] **Step 3: Write `tests/test_sim_cart.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -590,7 +590,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(sim_cart_lib STATIC ${CMAKE_SOURCE_DIR}/sim/sim_cart.c)
@@ -600,13 +600,13 @@ target_link_libraries(test_sim_cart sim_cart_lib)
 add_test(NAME test_sim_cart COMMAND test_sim_cart)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim/sim_cart.h sim/sim_cart.c tests/test_sim_cart.c tests/CMakeLists.txt
@@ -629,7 +629,7 @@ git commit -m "add: ground-truth cart dynamics sim"
   `void sim_range_sensor_set_dropout(sim_range_sensor_t *s, bool active)`.
   Consumed by `hal/hal_host.c` (Task 8).
 
-- [ ] **Step 1: Write `sim/sim_range_sensor.h`**
+- [x] **Step 1: Write `sim/sim_range_sensor.h`**
 
 ```c
 #ifndef SIM_SIM_RANGE_SENSOR_H
@@ -660,7 +660,7 @@ void sim_range_sensor_set_dropout(sim_range_sensor_t *s, bool active);
 #endif /* SIM_SIM_RANGE_SENSOR_H */
 ```
 
-- [ ] **Step 2: Write `sim/sim_range_sensor.c`**
+- [x] **Step 2: Write `sim/sim_range_sensor.c`**
 
 ```c
 #include "sim/sim_range_sensor.h"
@@ -694,7 +694,7 @@ hal_status_t sim_range_sensor_sample(sim_range_sensor_t *s, double true_range_m,
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_sim_range_sensor.c`**
+- [x] **Step 3: Write `tests/test_sim_range_sensor.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -755,7 +755,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(sim_range_sensor_lib STATIC ${CMAKE_SOURCE_DIR}/sim/sim_range_sensor.c)
@@ -766,13 +766,13 @@ target_link_libraries(test_sim_range_sensor sim_range_sensor_lib m)
 add_test(NAME test_sim_range_sensor COMMAND test_sim_range_sensor)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim/sim_range_sensor.h sim/sim_range_sensor.c tests/test_sim_range_sensor.c tests/CMakeLists.txt
@@ -799,7 +799,7 @@ git commit -m "add: simulated ToF range sensor (rate-limited, noisy, dropout hoo
   Step 2 — so a correct gravity-compensation implementation exactly
   recovers `true_accel_long_mps2` from noise-free, bias-free output.
 
-- [ ] **Step 1: Write `sim/sim_imu.h`**
+- [x] **Step 1: Write `sim/sim_imu.h`**
 
 ```c
 #ifndef SIM_SIM_IMU_H
@@ -829,7 +829,7 @@ hal_status_t sim_imu_sample(sim_imu_t *s, double true_accel_long_mps2, double tr
 #endif /* SIM_SIM_IMU_H */
 ```
 
-- [ ] **Step 2: Write `sim/sim_imu.c`**
+- [x] **Step 2: Write `sim/sim_imu.c`**
 
 ```c
 #include "sim/sim_imu.h"
@@ -883,7 +883,7 @@ hal_status_t sim_imu_sample(sim_imu_t *s, double true_accel_long_mps2, double tr
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_sim_imu.c`**
+- [x] **Step 3: Write `tests/test_sim_imu.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -952,7 +952,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(sim_imu_lib STATIC ${CMAKE_SOURCE_DIR}/sim/sim_imu.c)
@@ -963,13 +963,13 @@ target_link_libraries(test_sim_imu sim_imu_lib m)
 add_test(NAME test_sim_imu COMMAND test_sim_imu)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add sim/sim_imu.h sim/sim_imu.c tests/test_sim_imu.c tests/CMakeLists.txt
@@ -998,7 +998,7 @@ git commit -m "add: simulated IMU with gravity-coupled pitch model, noise, bias 
   call `hal_host_world_tick` once per main-loop iteration, then read
   through the returned `hal_t`.
 
-- [ ] **Step 1: Write `hal/hal_host.h`**
+- [x] **Step 1: Write `hal/hal_host.h`**
 
 ```c
 #ifndef HAL_HAL_HOST_H
@@ -1032,7 +1032,7 @@ hal_t hal_host_create(hal_host_world_t *w);
 #endif /* HAL_HAL_HOST_H */
 ```
 
-- [ ] **Step 2: Write `hal/hal_host.c`**
+- [x] **Step 2: Write `hal/hal_host.c`**
 
 ```c
 #include "hal/hal_host.h"
@@ -1097,7 +1097,7 @@ hal_t hal_host_create(hal_host_world_t *w) {
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_hal_host.c`**
+- [x] **Step 3: Write `tests/test_hal_host.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -1152,7 +1152,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(hal_host_lib STATIC ${CMAKE_SOURCE_DIR}/hal/hal_host.c)
@@ -1163,13 +1163,13 @@ target_link_libraries(test_hal_host hal_host_lib m)
 add_test(NAME test_hal_host COMMAND test_hal_host)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add hal/hal_host.h hal/hal_host.c tests/test_hal_host.c tests/CMakeLists.txt
@@ -1189,7 +1189,7 @@ git commit -m "add: host HAL backend wiring sim/ into hal_t"
 - Produces: `double gravity_compensate(double a_x_mps2, double a_z_mps2, double theta_rad)`.
   Consumed by `estimation/complementary_filter.c` (Task 12).
 
-- [ ] **Step 1: Write `estimation/gravity_compensation.h`**
+- [x] **Step 1: Write `estimation/gravity_compensation.h`**
 
 ```c
 #ifndef ESTIMATION_GRAVITY_COMPENSATION_H
@@ -1203,7 +1203,7 @@ double gravity_compensate(double a_x_mps2, double a_z_mps2, double theta_rad);
 #endif /* ESTIMATION_GRAVITY_COMPENSATION_H */
 ```
 
-- [ ] **Step 2: Write `estimation/gravity_compensation.c`**
+- [x] **Step 2: Write `estimation/gravity_compensation.c`**
 
 ```c
 #include "estimation/gravity_compensation.h"
@@ -1214,7 +1214,7 @@ double gravity_compensate(double a_x_mps2, double a_z_mps2, double theta_rad) {
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_gravity_compensation.c`** (values cross-checked against `sim/sim_imu.c`'s forward model, Task 7)
+- [x] **Step 3: Write `tests/test_gravity_compensation.c`** (values cross-checked against `sim/sim_imu.c`'s forward model, Task 7)
 
 ```c
 #include "tests/test_framework.h"
@@ -1248,7 +1248,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(gravity_compensation_lib STATIC ${CMAKE_SOURCE_DIR}/estimation/gravity_compensation.c)
@@ -1259,13 +1259,13 @@ target_link_libraries(test_gravity_compensation gravity_compensation_lib sim_imu
 add_test(NAME test_gravity_compensation COMMAND test_gravity_compensation)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add estimation/gravity_compensation.h estimation/gravity_compensation.c tests/test_gravity_compensation.c tests/CMakeLists.txt
@@ -1288,7 +1288,7 @@ git commit -m "add: gravity compensation module"
   (no-op — holds `theta_rad` — on invalid dt, per docs/design.md §6.4).
   Consumed by `estimation/complementary_filter.c` (Task 12).
 
-- [ ] **Step 1: Write `estimation/orientation_1d.h`**
+- [x] **Step 1: Write `estimation/orientation_1d.h`**
 
 ```c
 #ifndef ESTIMATION_ORIENTATION_1D_H
@@ -1310,7 +1310,7 @@ void orientation_1d_update(orientation_1d_t *o, double omega_y_rps, double dt);
 #endif /* ESTIMATION_ORIENTATION_1D_H */
 ```
 
-- [ ] **Step 2: Write `estimation/orientation_1d.c`**
+- [x] **Step 2: Write `estimation/orientation_1d.c`**
 
 ```c
 #include "estimation/orientation_1d.h"
@@ -1328,7 +1328,7 @@ void orientation_1d_update(orientation_1d_t *o, double omega_y_rps, double dt) {
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_orientation_1d.c`**
+- [x] **Step 3: Write `tests/test_orientation_1d.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -1368,7 +1368,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(orientation_1d_lib STATIC ${CMAKE_SOURCE_DIR}/estimation/orientation_1d.c)
@@ -1379,13 +1379,13 @@ target_link_libraries(test_orientation_1d orientation_1d_lib)
 add_test(NAME test_orientation_1d COMMAND test_orientation_1d)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add estimation/orientation_1d.h estimation/orientation_1d.c tests/test_orientation_1d.c tests/CMakeLists.txt
@@ -1412,7 +1412,7 @@ git commit -m "add: 1D pitch orientation integration with dt validation"
   Consumed by `estimation/complementary_filter.c` (Task 12) and
   `logging/csv_logger.c` (Task 17).
 
-- [ ] **Step 1: Write `estimation/raw_speed.h`**
+- [x] **Step 1: Write `estimation/raw_speed.h`**
 
 ```c
 #ifndef ESTIMATION_RAW_SPEED_H
@@ -1447,7 +1447,7 @@ void raw_speed_mark_stale(raw_speed_estimator_t *e);
 #endif /* ESTIMATION_RAW_SPEED_H */
 ```
 
-- [ ] **Step 2: Write `estimation/raw_speed.c`**
+- [x] **Step 2: Write `estimation/raw_speed.c`**
 
 ```c
 #include "estimation/raw_speed.h"
@@ -1485,7 +1485,7 @@ void raw_speed_mark_stale(raw_speed_estimator_t *e) {
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_raw_speed.c`**
+- [x] **Step 3: Write `tests/test_raw_speed.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -1542,7 +1542,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(raw_speed_lib STATIC ${CMAKE_SOURCE_DIR}/estimation/raw_speed.c)
@@ -1553,13 +1553,13 @@ target_link_libraries(test_raw_speed raw_speed_lib)
 add_test(NAME test_raw_speed COMMAND test_raw_speed)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add estimation/raw_speed.h estimation/raw_speed.c tests/test_raw_speed.c tests/CMakeLists.txt
@@ -1587,7 +1587,7 @@ git commit -m "add: RAW speed backward differencing with staleness handling"
   Tasks 15 and 19 (estimation- and control-chain measurement-contract
   tests) — this is exactly the §8 evaluation contract, implemented once.
 
-- [ ] **Step 1: Write `common/metrics.h`**
+- [x] **Step 1: Write `common/metrics.h`**
 
 ```c
 #ifndef COMMON_METRICS_H
@@ -1625,7 +1625,7 @@ double find_settling_time(const double *t_s, const double *values, int n, double
 #endif /* COMMON_METRICS_H */
 ```
 
-- [ ] **Step 2: Write `common/metrics.c`**
+- [x] **Step 2: Write `common/metrics.c`**
 
 ```c
 #include "common/metrics.h"
@@ -1699,7 +1699,7 @@ double find_settling_time(const double *t_s, const double *values, int n, double
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_metrics.c`**
+- [x] **Step 3: Write `tests/test_metrics.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -1768,7 +1768,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(metrics_lib STATIC ${CMAKE_SOURCE_DIR}/common/metrics.c)
@@ -1779,13 +1779,13 @@ target_link_libraries(test_metrics metrics_lib m)
 add_test(NAME test_metrics COMMAND test_metrics)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add common/metrics.h common/metrics.c tests/test_metrics.c tests/CMakeLists.txt
@@ -1810,7 +1810,7 @@ git commit -m "add: shared RMSE/bias/variance/jitter/settling-time metrics helpe
   — it decides, per docs/design.md §6.5, when to call `correct` (only on
   ticks with a freshly computed, non-stale RAW speed).
 
-- [ ] **Step 1: Write `estimation/complementary_filter.h`**
+- [x] **Step 1: Write `estimation/complementary_filter.h`**
 
 ```c
 #ifndef ESTIMATION_COMPLEMENTARY_FILTER_H
@@ -1841,7 +1841,7 @@ void complementary_filter_correct(complementary_filter_t *f, double v_tof_mps);
 #endif /* ESTIMATION_COMPLEMENTARY_FILTER_H */
 ```
 
-- [ ] **Step 2: Write `estimation/complementary_filter.c`**
+- [x] **Step 2: Write `estimation/complementary_filter.c`**
 
 ```c
 #include "estimation/complementary_filter.h"
@@ -1864,7 +1864,7 @@ void complementary_filter_correct(complementary_filter_t *f, double v_tof_mps) {
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_complementary_filter.c`**
+- [x] **Step 3: Write `tests/test_complementary_filter.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -1920,7 +1920,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(complementary_filter_lib STATIC ${CMAKE_SOURCE_DIR}/estimation/complementary_filter.c)
@@ -1931,13 +1931,13 @@ target_link_libraries(test_complementary_filter complementary_filter_lib)
 add_test(NAME test_complementary_filter COMMAND test_complementary_filter)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add estimation/complementary_filter.h estimation/complementary_filter.c tests/test_complementary_filter.c tests/CMakeLists.txt
@@ -1967,7 +1967,7 @@ git commit -m "add: V1 complementary filter predict/correct primitives"
   callable unit — consumed by `main_host_sim.c` (Task 21) and the
   measurement-contract test (Task 15).
 
-- [ ] **Step 1: Write `estimation/estimator.h`**
+- [x] **Step 1: Write `estimation/estimator.h`**
 
 ```c
 #ifndef ESTIMATION_ESTIMATOR_H
@@ -2005,7 +2005,7 @@ estimator_output_t estimator_tick(estimator_t *e, const range_sample_t *range, c
 #endif /* ESTIMATION_ESTIMATOR_H */
 ```
 
-- [ ] **Step 2: Write `estimation/estimator.c`**
+- [x] **Step 2: Write `estimation/estimator.c`**
 
 ```c
 #include "estimation/estimator.h"
@@ -2054,7 +2054,7 @@ estimator_output_t estimator_tick(estimator_t *e, const range_sample_t *range, c
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_estimator.c`**
+- [x] **Step 3: Write `tests/test_estimator.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -2142,7 +2142,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(estimator_lib STATIC ${CMAKE_SOURCE_DIR}/estimation/estimator.c)
@@ -2153,13 +2153,13 @@ target_link_libraries(test_estimator estimator_lib m)
 add_test(NAME test_estimator COMMAND test_estimator)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add estimation/estimator.h estimation/estimator.c tests/test_estimator.c tests/CMakeLists.txt
@@ -2185,7 +2185,7 @@ git commit -m "add: estimation chain orchestrator (raw + gravity comp + 1D pitch
   contract exercised end to end, standing alone as a regression test for
   RMSE/bias/variance (RAW and FUSED), dropout recovery, and step response.
 
-- [ ] **Step 1: Write `tests/test_estimation_chain_metrics.c`**
+- [x] **Step 1: Write `tests/test_estimation_chain_metrics.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -2328,7 +2328,7 @@ behavior — the point of this test is regression-locking real behavior, not
 hitting arbitrarily chosen numbers. Record the actual observed values in
 the task's commit message.
 
-- [ ] **Step 2: Add to `tests/CMakeLists.txt`**
+- [x] **Step 2: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_executable(test_estimation_chain_metrics test_estimation_chain_metrics.c)
@@ -2336,13 +2336,13 @@ target_link_libraries(test_estimation_chain_metrics hal_host_lib estimator_lib m
 add_test(NAME test_estimation_chain_metrics COMMAND test_estimation_chain_metrics)
 ```
 
-- [ ] **Step 3: Build, run, report pass count for all suites so far. Record observed RMSE/bias/variance/settling-time values.**
+- [x] **Step 3: Build, run, report pass count for all suites so far. Record observed RMSE/bias/variance/settling-time values.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/test_estimation_chain_metrics.c tests/CMakeLists.txt
@@ -2364,7 +2364,7 @@ git commit -m "add: estimation chain measurement-contract integration test (RMSE
   (docs/design.md §7.1). Consumed by `guidance/pd_controller.c` callers
   (the orchestrator in Task 21, and Task 19's control-chain test).
 
-- [ ] **Step 1: Write `guidance/v_safe.h`**
+- [x] **Step 1: Write `guidance/v_safe.h`**
 
 ```c
 #ifndef GUIDANCE_V_SAFE_H
@@ -2377,7 +2377,7 @@ double v_safe(double range_m);
 #endif /* GUIDANCE_V_SAFE_H */
 ```
 
-- [ ] **Step 2: Write `guidance/v_safe.c`**
+- [x] **Step 2: Write `guidance/v_safe.c`**
 
 ```c
 #include "guidance/v_safe.h"
@@ -2396,7 +2396,7 @@ double v_safe(double range_m) {
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_v_safe.c`**
+- [x] **Step 3: Write `tests/test_v_safe.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -2431,7 +2431,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(v_safe_lib STATIC ${CMAKE_SOURCE_DIR}/guidance/v_safe.c)
@@ -2442,13 +2442,13 @@ target_link_libraries(test_v_safe v_safe_lib m)
 add_test(NAME test_v_safe COMMAND test_v_safe)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add guidance/v_safe.h guidance/v_safe.c tests/test_v_safe.c tests/CMakeLists.txt
@@ -2475,7 +2475,7 @@ git commit -m "add: v_safe(range) glideslope-style speed limit"
   §8) never needs a second run. Consumed by Task 21 (orchestrator) and
   Task 19 (control-chain measurement-contract test).
 
-- [ ] **Step 1: Write `guidance/pd_controller.h`**
+- [x] **Step 1: Write `guidance/pd_controller.h`**
 
 ```c
 #ifndef GUIDANCE_PD_CONTROLLER_H
@@ -2510,7 +2510,7 @@ pd_output_t pd_controller_update(pd_controller_t *c, double speed_error, double 
 #endif /* GUIDANCE_PD_CONTROLLER_H */
 ```
 
-- [ ] **Step 2: Write `guidance/pd_controller.c`**
+- [x] **Step 2: Write `guidance/pd_controller.c`**
 
 ```c
 #include "guidance/pd_controller.h"
@@ -2554,7 +2554,7 @@ pd_output_t pd_controller_update(pd_controller_t *c, double speed_error, double 
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_pd_controller.c`**
+- [x] **Step 3: Write `tests/test_pd_controller.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -2616,7 +2616,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(pd_controller_lib STATIC ${CMAKE_SOURCE_DIR}/guidance/pd_controller.c)
@@ -2627,13 +2627,13 @@ target_link_libraries(test_pd_controller pd_controller_lib m)
 add_test(NAME test_pd_controller COMMAND test_pd_controller)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add guidance/pd_controller.h guidance/pd_controller.c tests/test_pd_controller.c tests/CMakeLists.txt
@@ -2654,7 +2654,7 @@ git commit -m "add: PD controller with filtered D-term, saturation, dt validatio
   `SERVO_CENTER_DEG = 90.0`, `SERVO_HALF_RANGE_DEG = 45.0`
   (docs/design.md §7.3). Consumed by Task 21 (orchestrator) and Task 19.
 
-- [ ] **Step 1: Write `guidance/actuator_mapping.h`**
+- [x] **Step 1: Write `guidance/actuator_mapping.h`**
 
 ```c
 #ifndef GUIDANCE_ACTUATOR_MAPPING_H
@@ -2668,7 +2668,7 @@ double actuator_map_to_servo_deg(double control_output);
 #endif /* GUIDANCE_ACTUATOR_MAPPING_H */
 ```
 
-- [ ] **Step 2: Write `guidance/actuator_mapping.c`**
+- [x] **Step 2: Write `guidance/actuator_mapping.c`**
 
 ```c
 #include "guidance/actuator_mapping.h"
@@ -2683,7 +2683,7 @@ double actuator_map_to_servo_deg(double control_output) {
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_actuator_mapping.c`**
+- [x] **Step 3: Write `tests/test_actuator_mapping.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -2716,7 +2716,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(actuator_mapping_lib STATIC ${CMAKE_SOURCE_DIR}/guidance/actuator_mapping.c)
@@ -2726,13 +2726,13 @@ target_link_libraries(test_actuator_mapping actuator_mapping_lib)
 add_test(NAME test_actuator_mapping COMMAND test_actuator_mapping)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add guidance/actuator_mapping.h guidance/actuator_mapping.c tests/test_actuator_mapping.c tests/CMakeLists.txt
@@ -2755,7 +2755,7 @@ git commit -m "add: actuator mapping (control_output -> servo angle), glideslope
   contract: RMS tracking error vs. `v_safe`, `control_output` variance,
   jitter pre/post D-term filtering, saturation percentage, step response.
 
-- [ ] **Step 1: Write `tests/test_control_chain_metrics.c`**
+- [x] **Step 1: Write `tests/test_control_chain_metrics.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -2863,7 +2863,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 2: Add to `tests/CMakeLists.txt`**
+- [x] **Step 2: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_executable(test_control_chain_metrics test_control_chain_metrics.c)
@@ -2871,13 +2871,13 @@ target_link_libraries(test_control_chain_metrics hal_host_lib estimator_lib v_sa
 add_test(NAME test_control_chain_metrics COMMAND test_control_chain_metrics)
 ```
 
-- [ ] **Step 3: Build, run, report pass count for all suites so far. Record observed metric values.**
+- [x] **Step 3: Build, run, report pass count for all suites so far. Record observed metric values.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/test_control_chain_metrics.c tests/CMakeLists.txt
@@ -2900,7 +2900,7 @@ git commit -m "add: control chain measurement-contract integration test (trackin
   `void csv_logger_close(csv_logger_t *log)`. Column order and names exactly
   match docs/design.md §10. Consumed by `main_host_sim.c` (Task 21).
 
-- [ ] **Step 1: Write `logging/csv_logger.h`**
+- [x] **Step 1: Write `logging/csv_logger.h`**
 
 ```c
 #ifndef LOGGING_CSV_LOGGER_H
@@ -2937,7 +2937,7 @@ void csv_logger_close(csv_logger_t *log);
 #endif /* LOGGING_CSV_LOGGER_H */
 ```
 
-- [ ] **Step 2: Write `logging/csv_logger.c`**
+- [x] **Step 2: Write `logging/csv_logger.c`**
 
 ```c
 #include "logging/csv_logger.h"
@@ -2979,7 +2979,7 @@ void csv_logger_close(csv_logger_t *log) {
 }
 ```
 
-- [ ] **Step 3: Write `tests/test_csv_logger.c`**
+- [x] **Step 3: Write `tests/test_csv_logger.c`**
 
 ```c
 #include "tests/test_framework.h"
@@ -3023,7 +3023,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 4: Add to `tests/CMakeLists.txt`**
+- [x] **Step 4: Add to `tests/CMakeLists.txt`**
 
 ```cmake
 add_library(csv_logger_lib STATIC ${CMAKE_SOURCE_DIR}/logging/csv_logger.c)
@@ -3033,13 +3033,13 @@ target_link_libraries(test_csv_logger csv_logger_lib)
 add_test(NAME test_csv_logger COMMAND test_csv_logger)
 ```
 
-- [ ] **Step 5: Build, run, report pass count for all suites so far.**
+- [x] **Step 5: Build, run, report pass count for all suites so far.**
 
 ```bash
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add logging/csv_logger.h logging/csv_logger.c tests/test_csv_logger.c tests/CMakeLists.txt
@@ -3062,7 +3062,7 @@ git commit -m "add: CSV logger matching docs/design.md §10 column contract"
   `estimator_tick` → `v_safe`/`pd_controller_update`/`actuator_map_to_servo_deg`
   → `csv_logger_write_row`, once per tick, and writes `run_log.csv`.
 
-- [ ] **Step 1: Write `main_host_sim.c`**
+- [x] **Step 1: Write `main_host_sim.c`**
 
 ```c
 #include <stdio.h>
@@ -3137,7 +3137,7 @@ int main(void) {
 }
 ```
 
-- [ ] **Step 2: Add the executable target to top-level `CMakeLists.txt`**
+- [x] **Step 2: Add the executable target to top-level `CMakeLists.txt`**
 
 ```cmake
 add_executable(main_host_sim
@@ -3162,7 +3162,7 @@ add_executable(main_host_sim
 target_link_libraries(main_host_sim m)
 ```
 
-- [ ] **Step 3: Build and run it; confirm `run_log.csv` is produced with the expected 11 columns and 1000 data rows**
+- [x] **Step 3: Build and run it; confirm `run_log.csv` is produced with the expected 11 columns and 1000 data rows**
 
 ```bash
 cmake --build build
@@ -3171,13 +3171,13 @@ head -3 run_log.csv
 wc -l run_log.csv   # expect 1001 (header + 1000 rows)
 ```
 
-- [ ] **Step 4: Run the full ctest suite once more; report the total pass count across every test binary.**
+- [x] **Step 4: Run the full ctest suite once more; report the total pass count across every test binary.**
 
 ```bash
 ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add main_host_sim.c CMakeLists.txt
@@ -3199,7 +3199,7 @@ git commit -m "add: main_host_sim integration entry point, wires full V1 pipelin
   exist yet in V1 (it's DEBT-1), so today this test simply proves the rule
   holds vacuously — it becomes load-bearing the moment DEBT-1 is picked up.
 
-- [ ] **Step 1: Write `tests/test_hal_boundary.sh`**
+- [x] **Step 1: Write `tests/test_hal_boundary.sh`**
 
 ```bash
 #!/usr/bin/env bash
@@ -3226,7 +3226,7 @@ echo "HAL boundary OK: no ESP-IDF includes outside hal/hal_esp32.c"
 exit 0
 ```
 
-- [ ] **Step 2: Make it executable and register it in `tests/CMakeLists.txt`**
+- [x] **Step 2: Make it executable and register it in `tests/CMakeLists.txt`**
 
 ```bash
 chmod +x tests/test_hal_boundary.sh
@@ -3236,14 +3236,14 @@ chmod +x tests/test_hal_boundary.sh
 add_test(NAME test_hal_boundary COMMAND ${CMAKE_SOURCE_DIR}/tests/test_hal_boundary.sh)
 ```
 
-- [ ] **Step 3: Run it directly to confirm it passes today, then via ctest**
+- [x] **Step 3: Run it directly to confirm it passes today, then via ctest**
 
 ```bash
 ./tests/test_hal_boundary.sh
 cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/test_hal_boundary.sh tests/CMakeLists.txt
@@ -3265,7 +3265,7 @@ git commit -m "add: structural check enforcing the hal_esp32.c ESP-IDF include b
   conventions, HAL/sim separation, the development process, `v_safe`'s
   real-world glideslope analog, and full V1 measurement results.
 
-- [ ] **Step 1: Write `README.md`** covering, at minimum, each of these as
+- [x] **Step 1: Write `README.md`** covering, at minimum, each of these as
   its own subsection with a direct plain-language answer (not just a
   pointer to docs/design.md — this file should be self-contained for a
   reader who never opens the design doc):
@@ -3304,7 +3304,7 @@ git commit -m "add: structural check enforcing the hal_esp32.c ESP-IDF include b
   - Known debt (DEBT-1..4 table from docs/design.md §11) with an explicit
     "not started, requires confirmation" note for V2.
 
-- [ ] **Step 2: Sanity-check the README's measurement numbers against the
+- [x] **Step 2: Sanity-check the README's measurement numbers against the
   actual last `ctest --output-on-failure` run** — re-run tasks 15/19's
   binaries directly if the numbers weren't captured earlier, rather than
   reconstructing them from memory:
@@ -3314,7 +3314,7 @@ git commit -m "add: structural check enforcing the hal_esp32.c ESP-IDF include b
 ./build/test_control_chain_metrics
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add README.md

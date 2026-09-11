@@ -77,8 +77,7 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-(Exact commands may be refined once `CMakeLists.txt` exists — this section
-should stay in sync with whatever the actual build produces.)
+(Commands verified current against the actual build/test suite.)
 
 ## Conventions (quick reference — full detail in docs/design.md §3)
 
@@ -96,5 +95,5 @@ should stay in sync with whatever the actual build produces.)
 
 ## Status
 
-V1 in progress. V2 (DEBT-1..4, `docs/design.md` §11) not started — requires
-explicit user confirmation before beginning.
+V1 complete and reviewed. V2 (DEBT-1..4, `docs/design.md` §11) not
+started — requires explicit user confirmation before beginning.

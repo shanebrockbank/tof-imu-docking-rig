@@ -8,6 +8,8 @@ cd "$REPO_ROOT"
 
 PATTERN='#include\s*[<"](driver/|esp_[a-z_]*\.h|freertos/|sdkconfig\.h)'
 
+# hardware_bringup/ is standalone pre-V1 bring-up firmware, outside the V1/V2
+# pipeline — see hardware_bringup/README.md for the pre-authorized exception.
 violations=$(grep -rlE "$PATTERN" \
     --include='*.c' --include='*.h' --include='*.cpp' --include='*.hpp' \
     --exclude-dir=hardware_bringup \

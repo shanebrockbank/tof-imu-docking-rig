@@ -5,6 +5,7 @@
 #include "guidance/pd_controller.h"
 #include "guidance/actuator_mapping.h"
 #include "logging/csv_logger.h"
+#include "common/dt_validation.h"
 
 #define TICK_DT 0.01
 #define N_TICKS 1000 /* 10 seconds */
@@ -72,6 +73,14 @@ int main(void) {
         return 1;
     }
 
+    /* hal_t is populated once at startup (docs/design.md §5), not
+     * reconstructed every loop iteration -- it's just a fixed set of
+     * function pointers bound to `world`. */
+    hal_t h = hal_host_create(&world);
+    /* Previous tick's timestamp, for computing the PD controller's dt from
+     * real clock_now() readings rather than assuming a fixed TICK_DT. */
+    timestamp_t prev_now = h.clock_now(h.ctx);
+
     /* Held last-known MEASURED range, for driving v_safe(). Ground truth
      * (world.cart.true_range_m) is used below only for the CSV's reference
      * columns -- never as a computational input to v_safe()/the PD
@@ -95,7 +104,8 @@ int main(void) {
         }
 
         hal_host_world_tick(&world, true_accel_mps2, 0.0, TICK_DT);
-        hal_t h = hal_host_create(&world);
+        timestamp_t now = h.clock_now(h.ctx);
+        double ctrl_dt = dt_between(prev_now, now);
 
         range_sample_t range_sample;
         imu_sample_t imu_sample;
@@ -112,12 +122,12 @@ int main(void) {
 
         double target = v_safe(last_measured_range_m);
         double speed_error = est.fused_speed_mps - target;
-        pd_output_t ctrl = pd_controller_update(&pd, speed_error, TICK_DT);
+        pd_output_t ctrl = pd_controller_update(&pd, speed_error, ctrl_dt);
         double servo_deg = actuator_map_to_servo_deg(ctrl.control_output_filtered);
         h.actuator_set_angle_deg(h.ctx, servo_deg);
 
         csv_logger_write_row(&log,
-            world.clock_now_s,
+            now.t_s,
             world.cart.true_range_m,
             world.cart.true_velocity_mps,
             est.raw_speed.value_mps,
@@ -128,6 +138,8 @@ int main(void) {
             ctrl.control_output_unfiltered,
             ctrl.control_output_filtered,
             servo_deg);
+
+        prev_now = now;
     }
 
     csv_logger_close(&log);
