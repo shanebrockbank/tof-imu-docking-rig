@@ -99,3 +99,9 @@ target_link_libraries(pd_controller_lib common_lib)
 add_executable(test_pd_controller test_pd_controller.c)
 target_link_libraries(test_pd_controller pd_controller_lib m)
 add_test(NAME test_pd_controller COMMAND test_pd_controller)
+
+add_library(actuator_mapping_lib STATIC ${CMAKE_SOURCE_DIR}/guidance/actuator_mapping.c)
+
+add_executable(test_actuator_mapping test_actuator_mapping.c)
+target_link_libraries(test_actuator_mapping actuator_mapping_lib)
+add_test(NAME test_actuator_mapping COMMAND test_actuator_mapping)
