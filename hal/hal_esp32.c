@@ -18,8 +18,11 @@
 #include "VL53L1X_api.h"
 #include "vl53l1_platform.h"
 #include "hal/vl53l1x_status.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include <stddef.h>
+#include <math.h>
 
 #define MAIN_LOOP_PERIOD_US 10000 /* 100 Hz, docs/design.md §5.6 */
 
@@ -56,8 +59,17 @@ static int64_t s_pace_iter_start_us = 0;
 #define TOF_TIMING_BUDGET_MS 33
 #define TOF_INTER_MEAS_MS    50   /* ~20Hz, confirmed by bring-up Test 4 */
 
+#define IMU_I2C_ADDR     0x69  /* ICM20948, matches current bring-up wiring (AD0 high) */
+#define ACCEL_LSB_PER_G  16384.0
+#define GYRO_LSB_PER_DPS 131.0
+#define G_MPS2           9.81
+#define DEG2RAD          (M_PI / 180.0)
+
 static i2c_master_bus_handle_t s_i2c_bus;
 static bool s_tof_ready = false;
+
+static i2c_master_dev_handle_t s_imu_dev;
+static bool s_imu_ready = false;
 
 /* Forward declaration: esp32_range_read (below) calls esp32_clock_now,
    whose definition sits later in this file (unchanged from prior tasks). */
@@ -107,9 +119,82 @@ static hal_status_t esp32_range_read(void *ctx, range_sample_t *out) {
     return status;
 }
 
+static uint8_t reg_read8(i2c_master_dev_handle_t dev, uint8_t reg) {
+    uint8_t val = 0xFF;
+    i2c_master_transmit_receive(dev, &reg, 1, &val, 1, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+    return val;
+}
+
+static void reg_write8(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t v) {
+    uint8_t buf[2] = { reg, v };
+    i2c_master_transmit(dev, buf, 2, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+}
+
+static esp_err_t reg_read_bytes(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t *buf, size_t len) {
+    return i2c_master_transmit_receive(dev, &reg, 1, buf, len, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+}
+
+static void icm_select_bank(i2c_master_dev_handle_t dev, uint8_t bank) {
+    reg_write8(dev, 0x7F, (bank & 0x03) << 4);
+}
+
+static void imu_init(void) {
+    i2c_device_config_t dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = IMU_I2C_ADDR,
+        .scl_speed_hz = I2C_FREQ_HZ,
+    };
+    if (i2c_master_bus_add_device(s_i2c_bus, &dev_cfg, &s_imu_dev) != ESP_OK) return;
+
+    icm_select_bank(s_imu_dev, 0);
+    reg_write8(s_imu_dev, 0x06, 0x80); /* PWR_MGMT_1: DEVICE_RESET */
+    vTaskDelay(pdMS_TO_TICKS(100));
+    icm_select_bank(s_imu_dev, 0);
+    reg_write8(s_imu_dev, 0x06, 0x01); /* PWR_MGMT_1: auto clock select, sleep=0 */
+    reg_write8(s_imu_dev, 0x07, 0x00); /* PWR_MGMT_2: enable accel + gyro */
+    vTaskDelay(pdMS_TO_TICKS(50));
+    icm_select_bank(s_imu_dev, 2);
+    reg_write8(s_imu_dev, 0x01, 0x01); /* GYRO_CONFIG_1: +-250dps, DLPF enabled */
+    reg_write8(s_imu_dev, 0x14, 0x01); /* ACCEL_CONFIG: +-2g, DLPF enabled */
+    icm_select_bank(s_imu_dev, 0);
+
+    if (reg_read8(s_imu_dev, 0x00) != 0xEA) return; /* WHO_AM_I mismatch */
+    s_imu_ready = true;
+}
+
+static hal_status_t translate_esp_err_to_hal_status(esp_err_t err) {
+    return (err == ESP_OK) ? HAL_OK : HAL_FAULT;
+}
+
 static hal_status_t esp32_imu_read(void *ctx, imu_sample_t *out) {
-    (void)ctx; (void)out;
-    return HAL_FAULT;
+    (void)ctx;
+    if (!s_imu_ready) return HAL_FAULT;
+
+    uint8_t buf[14];
+    esp_err_t err = reg_read_bytes(s_imu_dev, 0x2D, buf, 14);
+    if (translate_esp_err_to_hal_status(err) != HAL_OK) return HAL_FAULT;
+
+    int16_t rax = (int16_t)((buf[0] << 8) | buf[1]);
+    int16_t ray = (int16_t)((buf[2] << 8) | buf[3]);
+    int16_t raz = (int16_t)((buf[4] << 8) | buf[5]);
+    int16_t rgx = (int16_t)((buf[6] << 8) | buf[7]);
+    int16_t rgy = (int16_t)((buf[8] << 8) | buf[9]);
+    int16_t rgz = (int16_t)((buf[10] << 8) | buf[11]);
+
+    /* PLACEHOLDER axis/sign mapping — hardware_bringup Test 2 (axis/sign
+       mapping) has never been run. This identity mapping (chip X/Z -> HAL
+       longitudinal/vertical, chip gyro-Y -> HAL pitch) is UNVERIFIED.
+       Correct these indices/signs against real Test 2 results before
+       trusting this backend's estimator output — see the approved design
+       spec §3.2/§8. */
+    out->accel_mps2[0] = (rax / ACCEL_LSB_PER_G) * G_MPS2; /* longitudinal, PLACEHOLDER */
+    out->accel_mps2[1] = (ray / ACCEL_LSB_PER_G) * G_MPS2; /* lateral, unused */
+    out->accel_mps2[2] = (raz / ACCEL_LSB_PER_G) * G_MPS2; /* vertical, PLACEHOLDER */
+    out->gyro_rps[0] = (rgx / GYRO_LSB_PER_DPS) * DEG2RAD; /* unused */
+    out->gyro_rps[1] = (rgy / GYRO_LSB_PER_DPS) * DEG2RAD; /* pitch, PLACEHOLDER */
+    out->gyro_rps[2] = (rgz / GYRO_LSB_PER_DPS) * DEG2RAD; /* unused */
+    out->ts = esp32_clock_now(NULL);
+    return HAL_OK;
 }
 
 static void servo_init(void) {
@@ -176,6 +261,7 @@ hal_t hal_esp32_create(void) {
     servo_init();
     i2c_bus_init();
     tof_init();
+    imu_init();
     hal_t h;
     h.ctx = NULL;
     h.range_read = esp32_range_read;
