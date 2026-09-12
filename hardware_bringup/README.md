@@ -27,11 +27,14 @@ never coexists with the `tests/test_hal_boundary.sh` mechanical check that
 constraint describes (that check doesn't exist yet — it's part of
 DEBT-1/V2).
 
-Tests 1-3 are all implemented in a single firmware, `imu_bringup/main/main.c`
+Tests 1-6 are all implemented in a single firmware, `imu_bringup/main/main.c`
 — it auto-detects MPU6050 vs ICM20948 via `WHO_AM_I` at boot (no rebuild
-needed to swap chips, just rewire and reset), then offers a UART menu
-(`1`/`2`/`3`) to run each test. Test 2 streams live in a simple
-`label:value,...` format readable by any serial plotter. Build/flash/monitor:
+needed to swap chips, just rewire and reset), initializes a VL53L1X ToF
+sensor on the same shared I2C bus at its default address, then offers a
+UART menu (`1`-`6`) to run each test. Test 2 streams live in a simple
+`label:value,...` format readable by any serial plotter; Test 5 is
+interactive (position a target, press a key to sample, repeat, `s` to
+stop). Build/flash/monitor:
 
 ```bash
 source ~/esp/esp-idf/export.sh   # once per shell
@@ -46,9 +49,27 @@ idf.py -p /dev/ttyACM0 build flash monitor
 | 1 | IMU at-rest noise/bias (MPU6050 vs ICM20948) | done | both chips measured, see below |
 | 2 | IMU axis/sign mapping | firmware ready, not yet run | |
 | 3 | IMU achievable loop rate | done | 200Hz paced, 0 errors/1000 reads, 0.3us jitter — 2x margin over 100Hz confirmed |
-| 4 | ToF rate + no-new-data signaling | blocked on ToF shipment | |
-| 5 | ToF noise across range | blocked on ToF shipment | |
-| 6 | Combined I2C bus timing (ToF+IMU[+OLED]) | blocked on ToF shipment | |
+| 4 | ToF rate + no-new-data signaling | done | 20.34Hz achieved (target ~20Hz), 20.3%/79.7% ready/no-new-data split matches 100Hz-poll-of-20Hz-sensor expectation |
+| 5 | ToF noise across range | done (one distance confirmed across 2 batches; more distances TBD) | ~138mm range: 49-50/50 valid, stddev 1.3-1.6mm, 3 I2C errors/batch (self-healing, see below) |
+| 6 | Combined I2C bus timing (ToF+IMU) | done | 100.0Hz achieved, 0.3us jitter, 0 IMU errors/1000, 20.1% ToF ready (matches 20Hz/100Hz expectation); OLED not yet in the mix |
+
+**ToF driver:** the VL53L1X needs ST's proprietary Ultra Lite Driver (ULD)
+to configure/read correctly — it's not a simple register-poke sensor like
+the IMUs. `imu_bringup/components/vl53l1x_uld/` vendors ST's ULD core
+(`VL53L1X_api.c/h`, `VL53L1X_calibration.c/h`, `VL53L1X_error_codes.h`,
+`VL53L1X_types.h`, unmodified, sourced from
+[david-asher/VL53L1-ULD-ESP](https://github.com/david-asher/VL53L1-ULD-ESP))
+paired with a from-scratch platform shim (`vl53l1_platform.c`) written
+against `driver/i2c_master.h` so the ToF sensor shares the exact same
+`i2c_master_bus_handle_t` the IMU uses — the upstream repo's own platform
+layer uses the legacy `driver/i2c.h` API, which can't coexist with
+`i2c_master.h` on the same port, and sharing one bus/driver style across
+sensors is the point of Test 6. See that directory's own `README.md` for
+what's vendored vs. written. Distance mode is set to short (`<=~1.3m`,
+appropriate for a 1.0m rail) with a 33ms timing budget / 50ms
+inter-measurement period (~20Hz), matching `docs/design.md`'s ToF-rate
+assumption — Test 5 is exactly what should confirm or revisit the
+short-mode choice.
 
 ## Test 1: IMU at-rest noise/bias characterization
 
@@ -185,7 +206,7 @@ start to appear" (~1000Hz), rather than the real cadence sitting right at
 the edge of what's achievable. Not investigated further — 100Hz with this
 much headroom isn't a risk worth chasing down to its exact breaking point.
 
-## Test 4: ToF rate + no-new-data signaling (blocked on ToF shipment)
+## Test 4: ToF rate + no-new-data signaling
 
 **Goal:** confirm the VL53L1X can be configured for ~20Hz
 (`docs/design.md` §5.1) and determine exactly how the library reports "not
@@ -194,37 +215,74 @@ ready yet" vs "fault" — this is the literal translation `hal_esp32.c`'s
 `HAL_OK`/`HAL_NO_NEW_DATA`/`HAL_FAULT` (CLAUDE.md constraint 7: translator,
 not raw cast).
 
-**Procedure:** configure timing budget for ~50ms/measurement. Poll the
-data-ready mechanism (status register or interrupt pin, whichever the
-library exposes) every ~10ms in a loop; log which polls return "new data"
-vs "not ready" vs an explicit fault, and the actual achieved measurement
-rate.
+**Implementation:** timing budget 33ms / inter-measurement 50ms (~20Hz,
+configured in `tof_init()`), continuous "Timed" ranging mode (no interrupt
+pin wired — GPIO1 is unused, matching V1's polled-only design, §5.5). The
+firmware polls `VL53L1X_CheckForDataReady()` at a paced 100Hz for 3
+seconds, logging every ready sample's distance/status and counting
+ready-vs-not-ready polls, then reports the fraction of "new data" polls and
+the achieved inter-sample rate derived from ready-event timestamps.
 
-**Record here:** achieved Hz vs the 20Hz assumption; the exact API/status
-codes the library returns for each of the three cases.
+**Record here:** achieved Hz vs the 20Hz assumption; fraction of 100Hz
+polls that saw `HAL_NO_NEW_DATA` (expect ~80%, since a 20Hz sensor read at
+100Hz should show new data on ~1 in 5 polls).
 
-## Test 5: ToF noise across range (blocked on ToF shipment)
+## Test 5: ToF noise across range
 
 **Goal:** confirm whether a single fixed `noise_stddev_m = 0.003`
 (`hal/hal_host.c`) is a reasonable simplification across the ~1m track, or
 whether real noise grows meaningfully with distance/surface.
 
-**Procedure:** fix the sensor at several known distances along the track
-(e.g. 0.1, 0.3, 0.5, 0.8, 1.0m, measured with a ruler/tape), log ~100
-samples stationary at each distance.
+**Implementation:** interactive — position a target at a distance you
+measure yourself (e.g. with a tape, at 0.1, 0.3, 0.5, 0.8, 1.0m), press any
+key to sample 50 readings there (only `range_status == 0`/valid samples
+count toward mean/stddev), reposition and repeat, `s` to stop. Each
+readiness poll is paced to the same 100Hz cadence as Tests 4/6 — an
+earlier version used a naive 5ms `vTaskDelay` loop instead, which reliably
+triggered dozens of `I2C software timeout` errors per batch (same
+back-to-back-transaction failure mode as Test 3's first, unpaced attempt);
+the platform layer also now counts and reports low-level I2C failures per
+batch (`vl53l1_platform_get_error_count()`), since the ULD core itself
+doesn't check every call's status.
 
-**Record here:** stddev at each distance. Decision: keep the fixed
-default, or note it as a documented simplification with the real numbers
-to back that call.
+**Result (measured 2026-09-11, ICM20948 + VL53L1X, short distance mode):**
+pre-fix, one batch at an unmeasured close range hit ~60 I2C timeouts but
+still completed 50/50 valid (`mean=142.4mm stddev=2.06mm`), since
+`VL53L1_ReadMulti` zero-fills its output buffer on a failed transfer
+rather than leaving stale stack data for the ULD's status-blind
+ready-check to misinterpret. After the pacing fix, two batches at the same
+real distance: `49/50 valid: mean=138.1mm stddev=1.26mm (3 I2C errors)`
+and `50/50 valid: mean=138.6mm stddev=1.63mm (3 I2C errors)` — errors
+dropped roughly 20x (60 -> 3 per batch) and now self-heal within one 10ms
+poll instead of degrading the whole batch.
 
-## Test 6: Combined I2C bus timing (blocked on ToF shipment)
+The 3 remaining errors per batch, plus one during `VL53L1X_SensorInit` at
+boot, all occurred right when I2C activity *resumed after an idle gap*
+(waiting for a keypress between batches; once at boot). Test 4 and Test 6
+— continuous 100Hz polling with no idle gaps, 300 and 1000 transactions
+respectively — saw **zero** I2C errors. This points to a
+resume-from-idle characteristic of this bus/hardware rather than a
+sustained-load problem (the class Test 3 originally found); not chased
+further since it's now low-rate and self-recovering, and `SensorInit`'s
+own back-to-back write loop (where the boot-time error occurs) is
+unmodified ST source.
+
+**Record here:** mean/stddev at each distance you sampled. Decision: keep
+the fixed default, or note it as a documented simplification with the real
+numbers to back that call.
+
+## Test 6: Combined I2C bus timing
 
 **Goal:** confirm 100Hz is achievable with ToF + IMU (+ OLED if sharing
 the bus) all read back-to-back on the same loop iteration, and check for
 I2C address conflicts across all three devices.
 
-**Procedure:** wire all devices intended to share a bus, read all of them
-back-to-back in a loop with no other processing, time the full loop.
+**Implementation:** 1000 ticks paced to a 100Hz target, reading the IMU
+every tick and checking/consuming ToF data-ready every tick (same shared
+`i2c_master_bus_handle_t`, same pattern as Test 3's proven pacing
+technique). Reports achieved combined rate, jitter, IMU I2C error count,
+and ToF ready-fraction. OLED not included yet — wire it in and extend this
+test if/when it joins the bus, per the address-conflict risk noted above.
 
 **Record here:** achieved combined Hz; any address conflicts found and how
 resolved (e.g., OLED moved to SPI, or a second I2C bus used).

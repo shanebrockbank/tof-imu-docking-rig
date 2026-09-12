@@ -1,1 +1,3 @@
-idf_component_register(SRCS "main.c" INCLUDE_DIRS ".")
+idf_component_register(SRCS "main.c" INCLUDE_DIRS "."
+                        REQUIRES vl53l1x_uld
+                        PRIV_REQUIRES driver esp_timer esp_rom freertos)
