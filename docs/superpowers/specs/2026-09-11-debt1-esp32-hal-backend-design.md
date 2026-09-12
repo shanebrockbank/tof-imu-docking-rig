@@ -270,10 +270,14 @@ Both logger changes are additive; the existing `csv_logger_open`/
   unit test, and (implicitly, via existing tests) that `hal_t`'s new member
   doesn't break any existing host-backend construction or estimation/
   guidance/control test.
-- `tests/test_hal_boundary.sh` must continue to pass unmodified — it
-  already special-cases `hal/hal_esp32.c` as the sole permitted exception
-  (written speculatively before this file existed), so this is a
-  regression check, not a new mechanism.
+- `tests/test_hal_boundary.sh` needed one small addition during
+  implementation — a `--exclude-dir=vl53l1x_uld` exclusion, since the
+  vendored VL53L1X driver copied into `firmware/components/` (§2) also
+  legitimately includes ESP-IDF headers, the same way `hardware_bringup/`'s
+  copy already did. This is narrowly scoped (only affects that one
+  vendored-driver directory name) and does not weaken the check for any
+  hand-written pipeline code; `hal/hal_esp32.c` remains the sole exception
+  among hand-written files.
 - `firmware/`'s ESP-IDF project must build cleanly (`idf.py build`,
   target `esp32`) — this is compiled but **not flashed or run**, since no
   physical hardware is attached to this session. On-device verification

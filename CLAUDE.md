@@ -64,10 +64,15 @@ docs/        design.md (spec), superpowers/plans/ (checkbox task plans).
 main_host_sim.c   Host sim runner: wires hal_host + sim + estimation + guidance + logging together.
 ```
 
-There is no `main_esp32.c` / ESP-IDF project scaffolding yet — that's
-DEBT-1, V2. Don't open ESP-IDF docs, pinouts, or servo-timing datasheets
-unless the current task specifically concerns `hal_esp32.c` — none of that
-material is relevant to V1.
+`firmware/` is the ESP-IDF project (`main_esp32.c` + `hal_esp32.c`) built
+by DEBT-1 — see `docs/superpowers/specs/2026-09-11-debt1-esp32-hal-backend-design.md`.
+It is a separate `idf.py` build from the host CMakeLists.txt above, and is
+the one place in this repo where ESP-IDF docs/pinouts/servo-timing
+material is relevant. Axis-mapping (IMU) and servo GPIO/pulse-width
+constants in `hal_esp32.c` are explicitly-flagged placeholders pending
+physical bring-up (`hardware_bringup` Test 2, and a servo that hasn't
+been picked yet) — see that file's comments before trusting real-device
+output.
 
 ## Build & test
 
@@ -95,5 +100,10 @@ ctest --test-dir build --output-on-failure
 
 ## Status
 
-V1 complete and reviewed. V2 (DEBT-1..4, `docs/design.md` §11) not
-started — requires explicit user confirmation before beginning.
+V1 complete and reviewed. DEBT-1 (ESP32 HAL backend + servo output)
+implemented — see `docs/superpowers/specs/2026-09-11-debt1-esp32-hal-backend-design.md`.
+Builds cleanly (`idf.py build`) but has NOT been flashed/run on real
+hardware in this work — that verification, plus correcting the
+axis-mapping and servo placeholders against real bring-up results, is an
+explicit follow-up for the project owner. DEBT-2..4 not started —
+requires explicit user confirmation before beginning.

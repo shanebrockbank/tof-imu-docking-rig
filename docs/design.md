@@ -530,6 +530,12 @@ control_output_filtered, servo_angle_deg
 `true_range_m`/`true_velocity_mps` come directly from `sim_cart` (ground
 truth, logged for validation, never fed to the estimator per §8).
 
+**Hardware variant:** the ESP32 backend (`main_esp32.c`, DEBT-1) has no
+simulated ground truth, so it uses `csv_logger_write_row_hw()` instead —
+identical columns minus `true_range_m`/`true_velocity_mps` (no hardware
+analog), with `measured_range_m` (the real last-known ToF reading) in
+`true_range_m`'s old column position.
+
 ## 11. Known debt (V2 candidates, tracked explicitly)
 
 | ID | Item | Notes |
