@@ -14,6 +14,10 @@
 #include "esp_timer.h"
 #include "esp_rom_sys.h"
 #include "driver/ledc.h"
+#include "driver/i2c_master.h"
+#include "VL53L1X_api.h"
+#include "vl53l1_platform.h"
+#include "hal/vl53l1x_status.h"
 
 #include <stddef.h>
 
@@ -40,9 +44,67 @@ static bool s_servo_ready = false;
 
 static int64_t s_pace_iter_start_us = 0;
 
+#define I2C_PORT       I2C_NUM_0
+#define I2C_SDA_GPIO   21
+#define I2C_SCL_GPIO   22
+#define I2C_FREQ_HZ    400000
+#define I2C_TIMEOUT_MS 100
+
+#define TOF_I2C_ADDR         0x29
+#define TOF_DEV              ((uint16_t)(TOF_I2C_ADDR << 1))
+#define TOF_DISTANCE_MODE    1    /* short, <=~1.3m — matches the 1.0m rail, confirmed by bring-up Test 5 */
+#define TOF_TIMING_BUDGET_MS 33
+#define TOF_INTER_MEAS_MS    50   /* ~20Hz, confirmed by bring-up Test 4 */
+
+static i2c_master_bus_handle_t s_i2c_bus;
+static bool s_tof_ready = false;
+
+/* Forward declaration: esp32_range_read (below) calls esp32_clock_now,
+   whose definition sits later in this file (unchanged from prior tasks). */
+static timestamp_t esp32_clock_now(void *ctx);
+
+static void i2c_bus_init(void) {
+    i2c_master_bus_config_t bus_config = {
+        .i2c_port = I2C_PORT,
+        .sda_io_num = I2C_SDA_GPIO,
+        .scl_io_num = I2C_SCL_GPIO,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
+    };
+    i2c_new_master_bus(&bus_config, &s_i2c_bus);
+}
+
+static void tof_init(void) {
+    vl53l1_platform_bind(s_i2c_bus, TOF_I2C_ADDR);
+    if (VL53L1X_SensorInit(TOF_DEV) != 0) return;
+    VL53L1X_SetDistanceMode(TOF_DEV, TOF_DISTANCE_MODE);
+    VL53L1X_SetTimingBudgetInMs(TOF_DEV, TOF_TIMING_BUDGET_MS);
+    VL53L1X_SetInterMeasurementInMs(TOF_DEV, TOF_INTER_MEAS_MS);
+    VL53L1X_StartRanging(TOF_DEV);
+    s_tof_ready = true;
+}
+
 static hal_status_t esp32_range_read(void *ctx, range_sample_t *out) {
-    (void)ctx; (void)out;
-    return HAL_FAULT;
+    (void)ctx;
+    if (!s_tof_ready) return HAL_FAULT;
+
+    uint8_t ready = 0;
+    VL53L1X_CheckForDataReady(TOF_DEV, &ready);
+    if (!ready) return vl53l1x_translate_status(false, 0);
+
+    uint16_t distance_mm;
+    uint8_t range_status;
+    VL53L1X_GetDistance(TOF_DEV, &distance_mm);
+    VL53L1X_GetRangeStatus(TOF_DEV, &range_status);
+    VL53L1X_ClearInterrupt(TOF_DEV);
+
+    hal_status_t status = vl53l1x_translate_status(true, range_status);
+    if (status == HAL_OK) {
+        out->range_m = distance_mm / 1000.0;
+        out->ts = esp32_clock_now(NULL);
+    }
+    return status;
 }
 
 static hal_status_t esp32_imu_read(void *ctx, imu_sample_t *out) {
@@ -112,6 +174,8 @@ static void esp32_pace_tick(void *ctx) {
 hal_t hal_esp32_create(void) {
     s_pace_iter_start_us = esp_timer_get_time();
     servo_init();
+    i2c_bus_init();
+    tof_init();
     hal_t h;
     h.ctx = NULL;
     h.range_read = esp32_range_read;
