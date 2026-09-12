@@ -1327,11 +1327,11 @@ idf_component_register(
          "../../logging/csv_logger.c"
     INCLUDE_DIRS "../.."
     REQUIRES vl53l1x_uld
-    PRIV_REQUIRES esp_timer esp_rom driver
+    PRIV_REQUIRES esp_timer esp_rom driver freertos
 )
 ```
 
-(`common/metrics.c` isn't called by `main_esp32.c` but is included for parity with the host build's file set and to keep the two source lists easy to diff against each other — it costs nothing at link time since nothing references its symbols in a way that would fail.)
+(`common/metrics.c` isn't called by `main_esp32.c` but is included for parity with the host build's file set and to keep the two source lists easy to diff against each other — it costs nothing at link time since nothing references its symbols in a way that would fail. `freertos` carries over from Task 8 — `hal_esp32.c`'s IMU init still calls `vTaskDelay`/`pdMS_TO_TICKS`, and it's compiled into this same component.)
 
 - [ ] **Step 3: Build it**
 
