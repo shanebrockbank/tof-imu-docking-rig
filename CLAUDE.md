@@ -19,7 +19,13 @@ file doesn't cover.
    interface is identical in shape to `hal_host.h`. This is checked
    mechanically by `tests/test_hal_boundary.sh`, which greps every file
    except `hal_esp32.c` for ESP-IDF include patterns; a match fails the
-   build. If a change seems to require an ESP-IDF include outside that one
+   build.
+   (The vendored third-party VL53L1X driver under `hal/hal_esp32.c`'s own
+   `firmware/components/vl53l1x_uld/` — including its hand-written ESP-IDF
+   platform shim — is separately excepted by that script, the same way
+   `hardware_bringup/`'s pre-V1 firmware already is; this constraint's
+   "only file" language refers to hand-written pipeline code.)
+   If a change seems to require an ESP-IDF include outside that one
    file, stop and reconsider the design — don't add an exception.
 2. **`estimation/`, `guidance/`, and `common/` are pure C99 with zero
    hardware dependencies of any kind** (no ESP-IDF, no host-only libc

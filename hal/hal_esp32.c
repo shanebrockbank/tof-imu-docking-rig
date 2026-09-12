@@ -4,9 +4,12 @@
  * none of them. See
  * docs/superpowers/specs/2026-09-11-debt1-esp32-hal-backend-design.md.
  *
- * This is a scaffolding stub: every backend function is a placeholder that
- * compiles and links but does not yet talk to real hardware. Each is filled
- * in by a later task in that spec's implementation plan.
+ * Real, hardware-verified-good: ToF (VL53L1X) timing/distance-mode
+ * constants, the ICM20948 register init/read sequence, the esp_timer-based
+ * clock and busy-wait pacer. NOT yet verified against real hardware
+ * (explicit, loudly-commented placeholders at their definition sites): the
+ * IMU axis/sign mapping (hardware_bringup Test 2 was never run) and the
+ * servo GPIO/pulse-width/frequency constants (no servo picked/wired yet).
  */
 
 #include "hal/hal_esp32.h"
@@ -23,6 +26,7 @@
 
 #include <stddef.h>
 #include <math.h>
+#include <stdio.h>
 
 #define MAIN_LOOP_PERIOD_US 10000 /* 100 Hz, docs/design.md §5.6 */
 
@@ -38,6 +42,7 @@
 #define SERVO_PWM_MODE       LEDC_LOW_SPEED_MODE
 #define SERVO_PWM_CHANNEL    LEDC_CHANNEL_0
 #define SERVO_PWM_RESOLUTION LEDC_TIMER_14_BIT
+#define SERVO_PWM_RESOLUTION_BITS 14
 #define SERVO_MIN_PULSE_US   500.0
 #define SERVO_MAX_PULSE_US   2500.0
 #define SERVO_MIN_DEG        0.0
@@ -75,7 +80,7 @@ static bool s_imu_ready = false;
    whose definition sits later in this file (unchanged from prior tasks). */
 static timestamp_t esp32_clock_now(void *ctx);
 
-static void i2c_bus_init(void) {
+static bool i2c_bus_init(void) {
     i2c_master_bus_config_t bus_config = {
         .i2c_port = I2C_PORT,
         .sda_io_num = I2C_SDA_GPIO,
@@ -84,7 +89,7 @@ static void i2c_bus_init(void) {
         .glitch_ignore_cnt = 7,
         .flags.enable_internal_pullup = true,
     };
-    i2c_new_master_bus(&bus_config, &s_i2c_bus);
+    return i2c_new_master_bus(&bus_config, &s_i2c_bus) == ESP_OK;
 }
 
 static void tof_init(void) {
@@ -228,7 +233,7 @@ static hal_status_t esp32_actuator_set_angle_deg(void *ctx, double angle_deg) {
     double frac = (angle_deg - SERVO_MIN_DEG) / (SERVO_MAX_DEG - SERVO_MIN_DEG);
     double pulse_us = SERVO_MIN_PULSE_US + frac * (SERVO_MAX_PULSE_US - SERVO_MIN_PULSE_US);
     double period_us = 1e6 / SERVO_PWM_FREQ_HZ;
-    uint32_t max_duty = (1u << SERVO_PWM_RESOLUTION) - 1u;
+    uint32_t max_duty = (1u << SERVO_PWM_RESOLUTION_BITS) - 1u;
     uint32_t duty = (uint32_t)(pulse_us / period_us * max_duty);
 
     if (ledc_set_duty(SERVO_PWM_MODE, SERVO_PWM_CHANNEL, duty) != ESP_OK) return HAL_FAULT;
@@ -257,11 +262,20 @@ static void esp32_pace_tick(void *ctx) {
 }
 
 hal_t hal_esp32_create(void) {
-    s_pace_iter_start_us = esp_timer_get_time();
     servo_init();
-    i2c_bus_init();
-    tof_init();
-    imu_init();
+    bool i2c_ready = i2c_bus_init();
+    if (i2c_ready) {
+        tof_init();
+        imu_init();
+    }
+
+    printf("hal_esp32: servo=%s i2c_bus=%s tof=%s imu=%s\n",
+           s_servo_ready ? "ready" : "FAILED",
+           i2c_ready ? "ready" : "FAILED",
+           s_tof_ready ? "ready" : "FAILED",
+           s_imu_ready ? "ready" : "FAILED");
+
+    s_pace_iter_start_us = esp_timer_get_time();
     hal_t h;
     h.ctx = NULL;
     h.range_read = esp32_range_read;

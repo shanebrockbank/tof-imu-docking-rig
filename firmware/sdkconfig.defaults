@@ -1,1 +1,7 @@
 CONFIG_IDF_TARGET="esp32"
+# ESP_CONSOLE_UART_BAUDRATE's Kconfig prompt is only visible (and thus only
+# settable via sdkconfig.defaults) when the UART console is in "Custom"
+# mode rather than "Default" — without this line the baud override below
+# is silently dropped back to the 115200 default at config-generation time.
+CONFIG_ESP_CONSOLE_UART_CUSTOM=y
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=921600

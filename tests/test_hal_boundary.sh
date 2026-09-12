@@ -11,8 +11,10 @@ PATTERN='#include\s*[<"](driver/|esp_[a-z_]*\.h|freertos/|sdkconfig\.h)'
 # hardware_bringup/ is standalone pre-V1 bring-up firmware, outside the V1/V2
 # pipeline — see hardware_bringup/README.md for the pre-authorized exception.
 # vl53l1x_uld (vendored under both hardware_bringup/ and firmware/components/)
-# is a proven third-party ESP-IDF driver, not hand-written pipeline code — its
-# ESP-IDF includes are expected and accepted duplication, see
+# bundles ST's proven third-party VL53L1X driver plus a hand-written
+# ESP-IDF platform shim (vl53l1_platform.c/.h) that binds it to
+# driver/i2c_master.h — both are expected to include ESP-IDF headers and
+# both are accepted duplication, see
 # docs/superpowers/specs/2026-09-11-debt1-esp32-hal-backend-design.md §8.
 violations=$(grep -rlE "$PATTERN" \
     --include='*.c' --include='*.h' --include='*.cpp' --include='*.hpp' \

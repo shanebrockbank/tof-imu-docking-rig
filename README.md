@@ -204,14 +204,17 @@ simulated backend. Every module above the HAL (`estimation/`,
 function-pointer struct — never through a concrete backend — so none of
 that logic can ever accidentally acquire an ESP-IDF dependency, and the
 exact same estimation/guidance code runs unmodified against the
-simulated backend today and the real ESP32 backend once `DEBT-1` lands.
+simulated backend and the real ESP32 backend alike (see `firmware/` and `hal/hal_esp32.c` — DEBT-1).
 
 This is checked mechanically, not just by convention:
 `tests/test_hal_boundary.sh` greps every file in the repo *except*
-`hal_esp32.c` and the standalone `hardware_bringup/` tree (pre-V1
-firmware, see its own README) for ESP-IDF include patterns, and fails the
-build if any match. It runs as its own ctest entry (`test_hal_boundary`)
-alongside every C test suite.
+`hal_esp32.c`, the standalone `hardware_bringup/` tree (pre-V1 firmware,
+see its own README), and the vendored VL53L1X driver directories
+(`vl53l1x_uld/`, present under both `hardware_bringup/` and
+`firmware/components/` — a proven third-party sensor driver plus its
+hand-written ESP-IDF platform shim, `vl53l1_platform.c/.h`) for ESP-IDF
+include patterns, and fails the build if any match. It runs as its own
+ctest entry (`test_hal_boundary`) alongside every C test suite.
 
 ## Why estimation and control are scored separately, never against each other
 
@@ -297,7 +300,7 @@ Two questions are kept deliberately separate:
 
 - **`hal/`** answers "what does the hardware interface look like" —
   `hal.h` (the function-pointer interface structs), `hal_host.c`
-  (simulation-backed implementation), `hal_esp32.c` (V2, deferred). Thin,
+  (simulation-backed implementation), `hal_esp32.c` (the real ESP32 backend, DEBT-1). Thin,
   interface-shaped, **no physics**.
 - **`sim/`** answers "what would the hardware output under these physical
   conditions" — `sim_range_sensor`, `sim_imu`, `sim_cart`, `sim_noise`:
@@ -314,7 +317,7 @@ Other binding process agreements (full list in `CLAUDE.md`/
   they only ever see `hal_t`.
 - **Polled, not interrupt-driven, in V1.** Both sensors are polled from
   the main loop at the main loop's tick rate; neither the host sim nor
-  the (deferred) ESP32 backend uses a data-ready interrupt. If a future
+  the real ESP32 backend (`hal_esp32.c`) uses a data-ready interrupt. If a future
   backend needs interrupts, the required boundary is already decided:
   ISR sets a flag/queue only, the main loop polls it, and
   estimation/guidance/control code is never reachable from ISR context.
@@ -442,13 +445,16 @@ To run the host-simulated pipeline itself and produce a CSV log
 
 ## Known debt (V2 candidates)
 
-V2 is **not started**. Per `CLAUDE.md` constraint 9 and
-`docs/design.md` §12, none of the items below may be started without
-explicit confirmation that V1 is complete, tested, and reviewed.
+DEBT-1 is implemented (see `firmware/` and `hal/hal_esp32.c`) but has not
+been flashed or verified on real hardware — see that spec's own risk list
+for what still needs physical bring-up. DEBT-2 through DEBT-4 are **not
+started**. Per `CLAUDE.md` constraint 9 and `docs/design.md` §12, none of
+the remaining items may be started without explicit confirmation that V1
+is complete, tested, and reviewed.
 
 | ID | Item | Notes |
 |---|---|---|
-| DEBT-1 | ESP32 hardware backend (`hal_esp32.c`) + real servo output | The actual physical build. Requires the one-file hardware boundary (above) to already hold. |
+| DEBT-1 | ESP32 hardware backend (`hal_esp32.c`) + real servo output | **Implemented**, not yet flashed/verified on real hardware — see `docs/superpowers/specs/2026-09-11-debt1-esp32-hal-backend-design.md`. |
 | DEBT-2 | Kalman filter as an alternate estimator, compared side-by-side against the V1 complementary filter using the same §8 measurement contract | Explicitly not built in V1. |
 | DEBT-3 | Richer timing realism: injected ToF latency, IMU timing jitter, out-of-order/stale measurement handling, latency metrics under these conditions | V1's dt validation handles pathological `dt` but does not inject or specifically characterize jitter/latency. |
 | DEBT-4 | Actuator deadband + rate-limiting beyond basic saturation | V1 has saturation only. |

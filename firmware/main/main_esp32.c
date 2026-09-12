@@ -41,6 +41,12 @@ void app_main(void) {
 
         estimator_output_t est = estimator_tick(&estimator, &range_sample, &imu_sample);
 
+        /* Unlike main_host_sim.c (which seeds an initial known range from the
+           simulator and never gates on this), real hardware has no ground-truth
+           initial range — so control/actuation/logging are deliberately gated
+           on having seen at least one valid ToF sample. This is an intentional,
+           acknowledged departure from an otherwise-identical loop shape between
+           the two mains. */
         if (have_measured_range) {
             double target = v_safe(last_measured_range_m);
             double speed_error = est.fused_speed_mps - target;
