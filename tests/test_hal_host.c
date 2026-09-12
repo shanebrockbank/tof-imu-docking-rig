@@ -40,11 +40,23 @@ TEST(test_tick_advances_true_cart_state) {
     CHECK(w.cart.true_velocity_mps > 0.0);
 }
 
+TEST(test_pace_tick_is_noop) {
+    hal_host_world_t w;
+    hal_host_world_init(&w, 1.0, 1.0, 1);
+    hal_t h = hal_host_create(&w);
+    hal_host_world_tick(&w, 0.0, 0.0, 0.01);
+    timestamp_t before = h.clock_now(h.ctx);
+    h.pace_tick(h.ctx);
+    timestamp_t after = h.clock_now(h.ctx);
+    CHECK_NEAR(before.t_s, after.t_s, 1e-9);
+}
+
 int main(void) {
     RUN_TEST(test_hal_t_reads_route_through_world_state);
     RUN_TEST(test_actuator_command_is_captured);
     RUN_TEST(test_clock_now_reflects_ticks);
     RUN_TEST(test_tick_advances_true_cart_state);
+    RUN_TEST(test_pace_tick_is_noop);
     TEST_SUMMARY();
     return 0;
 }

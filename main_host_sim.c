@@ -104,6 +104,7 @@ int main(void) {
         }
 
         hal_host_world_tick(&world, true_accel_mps2, 0.0, TICK_DT);
+        h.pace_tick(h.ctx);
         timestamp_t now = h.clock_now(h.ctx);
         double ctrl_dt = dt_between(prev_now, now);
 

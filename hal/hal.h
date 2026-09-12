@@ -20,6 +20,13 @@ typedef struct {
 
     /* Monotonic seconds, arbitrary epoch. See docs/design.md §5.4. */
     timestamp_t (*clock_now)(void *ctx);
+
+    /* Blocks until the next main-loop tick boundary (real backends); a
+       no-op on backends with no wall clock to wait on (e.g. host/sim).
+       Called once per loop iteration by both main_host_sim.c and
+       main_esp32.c so their loop bodies are identical in shape — see
+       docs/superpowers/specs/2026-09-11-debt1-esp32-hal-backend-design.md §4. */
+    void (*pace_tick)(void *ctx);
 } hal_t;
 
 #endif /* HAL_HAL_H */

@@ -49,6 +49,10 @@ static timestamp_t host_clock_now(void *ctx) {
     return t;
 }
 
+static void host_pace_tick(void *ctx) {
+    (void)ctx; /* host/sim has no wall clock to wait on; time advances via hal_host_world_tick() */
+}
+
 hal_t hal_host_create(hal_host_world_t *w) {
     hal_t h;
     h.ctx = w;
@@ -56,5 +60,6 @@ hal_t hal_host_create(hal_host_world_t *w) {
     h.imu_read = host_imu_read;
     h.actuator_set_angle_deg = host_actuator_set_angle_deg;
     h.clock_now = host_clock_now;
+    h.pace_tick = host_pace_tick;
     return h;
 }
