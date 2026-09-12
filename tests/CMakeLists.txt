@@ -117,3 +117,9 @@ target_link_libraries(test_csv_logger csv_logger_lib)
 add_test(NAME test_csv_logger COMMAND test_csv_logger)
 
 add_test(NAME test_hal_boundary COMMAND ${CMAKE_SOURCE_DIR}/tests/test_hal_boundary.sh)
+
+add_library(vl53l1x_status_lib STATIC ${CMAKE_SOURCE_DIR}/hal/vl53l1x_status.c)
+
+add_executable(test_vl53l1x_status test_vl53l1x_status.c)
+target_link_libraries(test_vl53l1x_status vl53l1x_status_lib)
+add_test(NAME test_vl53l1x_status COMMAND test_vl53l1x_status)
